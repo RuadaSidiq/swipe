@@ -1,5 +1,15 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "buildCommand": "prisma migrate deploy && next build",
-  "functions": { "src/app/api/cron/tick/route.ts": { "maxDuration": 60 } }
+  "functions": {
+    "src/app/api/cron/tick/route.ts": {
+      "maxDuration": 60
+    },
+    "src/app/api/admin/seed-demo/route.ts": {
+      "maxDuration": 60
+    }
+  },
+  "regions": [
+    "fra1"
+  ]
 }
