@@ -1,0 +1,33 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root { --bg: #f6f7fb; --panel: #ffffff; --line: #e6e8ef; --text: #12151d; --muted: #646b7f; --soft: #f1f2f7; }
+@media (prefers-color-scheme: dark) {
+  :root { --bg: #0b0d12; --panel: #12151c; --line: #222736; --text: #e8eaf1; --muted: #8b92a7; --soft: #181c26; }
+}
+html, body { background: var(--bg); color: var(--text); }
+body { font-feature-settings: "cv11", "ss01"; -webkit-font-smoothing: antialiased; }
+
+@layer components {
+  .panel { @apply rounded-xl border; background: var(--panel); border-color: var(--line); }
+  .muted { color: var(--muted); }
+  .soft { background: var(--soft); }
+  .line { border-color: var(--line); }
+  .input { @apply w-full rounded-lg border px-3 py-2 text-sm outline-none transition focus:ring-2 focus:ring-brand-500/40; background: var(--panel); border-color: var(--line); color: var(--text); }
+  .btn { @apply inline-flex items-center justify-center gap-1.5 rounded-lg px-3.5 py-2 text-sm font-medium transition disabled:cursor-not-allowed disabled:opacity-50; }
+  .btn-primary { @apply btn bg-brand-500 text-white hover:bg-brand-600; }
+  .btn-secondary { @apply btn border; background: var(--panel); border-color: var(--line); }
+  .btn-secondary:hover { background: var(--soft); }
+  .btn-ghost { @apply btn; }
+  .btn-ghost:hover { background: var(--soft); }
+  .btn-danger { @apply btn bg-red-600 text-white hover:bg-red-700; }
+  .label { @apply mb-1 block text-xs font-medium; color: var(--muted); }
+  .chip { @apply inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-medium; }
+  .nav-link { @apply flex items-center gap-2.5 rounded-lg px-2.5 py-1.5 text-sm transition; color: var(--muted); }
+  .nav-link:hover { background: var(--soft); color: var(--text); }
+  .nav-link[data-active="true"] { background: var(--soft); color: var(--text); font-weight: 500; }
+  .table th { @apply px-3 py-2 text-left text-xs font-medium; color: var(--muted); }
+  .table td { @apply border-t px-3 py-2.5 text-sm; border-color: var(--line); }
+}
+@media print { .no-print { display: none !important; } body { background: white; } .panel { border-color: #ddd; } }
