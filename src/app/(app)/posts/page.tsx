@@ -34,10 +34,9 @@ export default async function PostsPage({ searchParams }: { searchParams: Promis
       </div>
       <form className="mb-4 flex flex-wrap gap-2">
         <input type="hidden" name="status" value={sp.status ?? ""} />
-        <input name="q" defaultValue={sp.q} className="input max-w-xs" placeholder="Search text or tag" />
+        <input name="q" defaultValue={sp.q} className="input max-w-xs" placeholder="Search posts" aria-label="Search posts" />
         <select name="platform" defaultValue={sp.platform ?? ""} className="input w-40"><option value="">All networks</option>{PLATFORM_LIST.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}</select>
-        <select name="campaign" defaultValue={sp.campaign ?? ""} className="input w-44"><option value="">All campaigns</option>{campaigns.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}</select>
-        <button className="btn-secondary">Filter</button>
+        <button className="btn-secondary">Search</button>
       </form>
       <Card pad={false}>
         {posts.length === 0 ? <Empty title="No posts match" body="Create a post or change the filters." action={<Link href="/publisher" className="btn-primary">Create post</Link>} /> : (

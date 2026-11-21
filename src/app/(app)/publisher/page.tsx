@@ -33,7 +33,6 @@ export default async function PublisherPage({ searchParams }: { searchParams: Pr
   };
   return (
     <>
-      <PageHeader title={post ? "Edit post" : "Create post"} />
       
       <Composer accounts={JSON.parse(JSON.stringify(accounts))} media={JSON.parse(JSON.stringify(media))} campaigns={campaigns} brands={brands} initial={initial}
         canPublish={ctx.can("posts.publish")} canSchedule={ctx.can("posts.schedule") || (ctx.workspace.requireApproval && ctx.can("posts.create"))}

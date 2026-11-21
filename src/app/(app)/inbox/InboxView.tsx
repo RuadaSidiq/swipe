@@ -1,7 +1,7 @@
 "use client";
 import { useCallback, useEffect, useRef, useState, useTransition } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { Archive, CheckCircle2, Flag, MailOpen, Sparkles, Send, StickyNote, Smile, BookmarkPlus, ChevronLeft, ShieldAlert } from "lucide-react";
+import { Archive, CheckCircle2, Flag, MailOpen, Sparkles, Send, StickyNote, Smile, BookmarkPlus, ChevronLeft, ShieldAlert, MessageCircle, PanelRight } from "lucide-react";
 import { Avatar, DemoBadge, Empty, Notice, PlatformBadge, StatusBadge, cx } from "@/components/ui";
 import { PLATFORMS, PLATFORM_LIST, type PlatformId } from "@/lib/platforms/registry";
 import { assignAction, flagsAction, noteAction, openConversation, replyAction, savedReplyAction, statusAction } from "../_actions/inbox";
@@ -15,6 +15,9 @@ const EMOJI = ["🙂", "😊", "🙏", "👍", "❤️", "🎉", "🔥", "✅", 
 const SENSITIVE = /\b(refund|chargeback|lawyer|legal|sue|fraud|scam|stolen|hack|password|credit card|bank|payment|overcharged|complain|unacceptable|harass|emergency|injur|medical)\w*/i;
 const ago = (iso: string) => { const s = (Date.now() - new Date(iso).getTime()) / 1000; return s < 60 ? "now" : s < 3600 ? `${Math.floor(s / 60)}m` : s < 86400 ? `${Math.floor(s / 3600)}h` : `${Math.floor(s / 86400)}d`; };
 
+const TABS = [["open", "All"], ["unread", "Unread"], ["mine", "Mine"], ["resolved", "Done"]] as const;
+const MORE = [["awaiting", "Needs reply"], ["unassigned", "Unassigned"], ["priority", "Priority"], ["pending", "Pending"], ["read", "Read"], ["archived", "Archived"]] as const;
+
 export function InboxView({ convs, members, saved, me, filters, openId, can, unreadCount }: {
   convs: ConvRow[]; members: { id: string; name: string }[]; saved: { id: string; title: string; body: string }[]; me: string; unreadCount: number;
   filters: { f: string; type: string; platform: string; q: string }; openId?: string; can: { reply: boolean; assign: boolean; ai: boolean };
@@ -25,6 +28,8 @@ export function InboxView({ convs, members, saved, me, filters, openId, can, unr
   const [loading, setLoading] = useState(false);
   const [q, setQ] = useState(filters.q);
   const setParam = (k: string, v: string) => { const p = new URLSearchParams(params.toString()); if (v) p.set(k, v); else p.delete(k); p.delete("c"); router.push(`/inbox?${p}`); };
+  const platformsPresent = [...new Set(convs.map((c) => c.account.platform))];
+  const inMore = MORE.some(([k]) => k === filters.f);
 
   const load = useCallback(async (id: string, quiet = false) => {
     if (!quiet) setLoading(true);
@@ -32,52 +37,66 @@ export function InboxView({ convs, members, saved, me, filters, openId, can, unr
     if (r.ok) setThread(r.data);
   }, []);
   useEffect(() => { if (active) load(active); }, [active, load]);
-  // Poll for new messages while the inbox is open.
   useEffect(() => { const h = setInterval(() => { router.refresh(); if (active) load(active, true); }, 20_000); return () => clearInterval(h); }, [active, load, router]);
 
   return (
-    <div className="panel grid h-[calc(100vh-96px)] overflow-hidden lg:grid-cols-[200px_340px_1fr]">
-      <aside className="line hidden overflow-y-auto border-r p-3 lg:block">
-        <div className="mb-2 flex items-center gap-2 px-2.5 font-display text-[17px] font-semibold">Inbox {unreadCount > 0 && <span className="rounded-full px-1.5 text-[11px] font-semibold leading-5 text-[#0E1F1B]" style={{ background: "var(--signal)" }}>{unreadCount}</span>}</div>
-        {FOLDERS.map(([k, l]) => <button key={k} className="tab-link w-full" data-active={filters.f === k} onClick={() => setParam("f", k)}>{l}</button>)}
-        <div className="muted mb-1 mt-5 px-2.5 text-[12px] font-medium">Type</div>
-        {TYPES.map(([k, l]) => <button key={k} className="tab-link w-full" data-active={filters.type === k} onClick={() => setParam("type", k)}>{l}</button>)}
-        <div className="muted mb-1 mt-5 px-2.5 text-[12px] font-medium">Network</div>
-        <button className="tab-link w-full" data-active={!filters.platform} onClick={() => setParam("platform", "")}>All networks</button>
-        {PLATFORM_LIST.filter((p) => p.caps.dms.status !== "unavailable" || p.caps.comments.status !== "unavailable").map((p) => <button key={p.id} className="tab-link w-full" data-active={filters.platform === p.id} onClick={() => setParam("platform", p.id)}><PlatformBadge id={p.id} size={16} /> {p.name}</button>)}
-      </aside>
-
-      <section className={cx("line flex min-h-0 flex-col border-r", active && "hidden lg:flex")}>
-        <div className="line space-y-2 border-b p-3">
-          <form onSubmit={(e) => { e.preventDefault(); setParam("q", q); }}><input className="input" placeholder="Search conversations" value={q} onChange={(e) => setQ(e.target.value)} /></form>
-          <div className="flex gap-2 lg:hidden">
-            <select className="input py-1.5" value={filters.f} onChange={(e) => setParam("f", e.target.value)}>{FOLDERS.map(([k, l]) => <option key={k} value={k}>{l}</option>)}</select>
-            <select className="input py-1.5" value={filters.type} onChange={(e) => setParam("type", e.target.value)}>{TYPES.map(([k, l]) => <option key={k} value={k}>{l}</option>)}</select>
+    <div className="panel grid h-[calc(100dvh-210px)] min-h-[480px] overflow-hidden lg:h-[calc(100dvh-180px)] lg:grid-cols-[360px_1fr]">
+      <section className={cx("flex min-h-0 flex-col border-r", active && "hidden lg:flex")} style={{ borderColor: "var(--line)" }} aria-label="Conversations">
+        <div className="flex flex-col gap-3 border-b p-4" style={{ borderColor: "var(--line)" }}>
+          <div className="flex items-center justify-between">
+            <h1 className="font-display text-xl font-semibold">Inbox</h1>
+            {unreadCount > 0 && <span className="muted text-xs">{unreadCount} unread</span>}
           </div>
+          <form onSubmit={(e) => { e.preventDefault(); setParam("q", q); }}><input className="input py-2" placeholder="Search messages" value={q} onChange={(e) => setQ(e.target.value)} aria-label="Search messages" /></form>
+          <div className="flex items-center gap-1">
+            {TABS.map(([k, l]) => <button key={k} className="tab-link px-2.5" data-active={filters.f === k} onClick={() => setParam("f", k)}>{l}</button>)}
+            <select className={cx("input ml-auto w-[84px] shrink-0 py-1.5 text-xs", inMore && "border-[var(--accent-bright)] text-[var(--accent)]")} value={inMore ? filters.f : ""} onChange={(e) => setParam("f", e.target.value || "open")} aria-label="More filters">
+              <option value="">More</option>{MORE.map(([k, l]) => <option key={k} value={k}>{l}</option>)}
+            </select>
+          </div>
+          {(platformsPresent.length > 1 || filters.platform || filters.type) && (
+            <div className="flex flex-wrap items-center gap-1.5">
+              {platformsPresent.map((p) => (
+                <button key={p} onClick={() => setParam("platform", filters.platform === p ? "" : p)} aria-pressed={filters.platform === p} title={PLATFORMS[p as PlatformId]?.name}
+                  className={cx("rounded-lg p-0.5 transition", filters.platform && filters.platform !== p && "opacity-35", filters.platform === p && "ring-2 ring-[var(--accent-bright)]")}>
+                  <PlatformBadge id={p} size={24} />
+                </button>
+              ))}
+              <select className="input ml-auto w-auto py-1 text-xs" value={filters.type} onChange={(e) => setParam("type", e.target.value)} aria-label="Message type">
+                <option value="">All types</option><option value="dm">Messages</option><option value="comment">Comments</option><option value="mention">Mentions</option>
+              </select>
+            </div>
+          )}
         </div>
-        <ul className="flex-1 overflow-y-auto">
-          {convs.length === 0 && <Empty title="No conversations here" />}
+        <ul className="flex-1 overflow-y-auto p-2">
+          {convs.length === 0 && <Empty title="No conversations" body={filters.f === "open" && !filters.q ? "New messages and comments will show up here." : "Try a different filter."} />}
           {convs.map((c) => (
             <li key={c.id}>
               <button onClick={() => { setActive(c.id); router.replace(`/inbox?${new URLSearchParams({ ...Object.fromEntries(params), c: c.id })}`, { scroll: false }); }}
-                className={cx("line flex w-full gap-3 border-b px-3 py-3 text-left transition hover:bg-[var(--soft)]", active === c.id && "bg-[var(--soft)]")}>
-                <Avatar src={c.contact?.avatarUrl} name={c.contact?.displayName ?? "?"} size={36} platform={c.account.platform} />
+                className={cx("flex w-full gap-3 rounded-xl px-3 py-3 text-left transition", active === c.id ? "bg-[var(--accent-soft)]" : "hover:bg-[var(--soft)]")}>
+                <Avatar src={c.contact?.avatarUrl} name={c.contact?.displayName ?? "?"} size={40} platform={c.account.platform} />
                 <div className="min-w-0 flex-1">
-                  <div className="flex items-center gap-1.5"><span className={cx("truncate text-sm", c.unread && "font-semibold")}>{c.contact?.displayName ?? "Unknown"}</span>
-                    {c.priority && <Flag size={12} className="shrink-0 fill-red-500 text-red-600 dark:text-red-400" />}<span className="muted ml-auto shrink-0 text-[11px]">{ago(c.lastMessageAt)}</span></div>
-                  <div className="muted truncate text-[11px]">{c.kind === "dm" ? "DM" : c.kind} · {c.account.displayName}{c.assignee ? ` · ${c.assignee.user.name}` : ""}</div>
-                  <div className={cx("mt-0.5 line-clamp-2 text-xs", c.unread ? "" : "muted")}>{c.lastMessagePreview}</div>
-                  {(c.tags.length > 0 || (c.awaitingReply && c.status !== "RESOLVED")) && <div className="mt-1 flex flex-wrap items-center gap-1.5 text-[11.5px]">{c.awaitingReply && c.status !== "RESOLVED" && <span className="font-medium text-amber-700 dark:text-amber-400">Needs reply</span>}{c.tags.slice(0, 3).map((t) => <span key={t} className="chip soft">{t}</span>)}</div>}
+                  <div className="flex items-center gap-1.5">
+                    <span className={cx("truncate text-sm", c.unread ? "font-semibold" : "font-medium")}>{c.contact?.displayName ?? "Unknown"}</span>
+                    {c.priority && <Flag size={12} className="shrink-0 fill-red-500 text-red-500" aria-label="Priority" />}
+                    <span className="muted ml-auto shrink-0 text-[11.5px]">{ago(c.lastMessageAt)}</span>
+                  </div>
+                  <div className={cx("mt-0.5 line-clamp-2 text-[13px] leading-snug", !c.unread && "muted")}>{c.lastMessagePreview}</div>
+                  <div className="muted mt-1 flex items-center gap-1.5 text-[11.5px]">
+                    <span>{c.kind === "dm" ? "Message" : c.kind === "mention" ? "Mention" : "Comment"}</span>
+                    {c.awaitingReply && c.status !== "RESOLVED" && <span className="font-medium text-amber-700 dark:text-amber-400">· Needs reply</span>}
+                    {c.assignee && <span>· {c.assignee.user.name.split(" ")[0]}</span>}
+                  </div>
                 </div>
-                {c.unread && <span className="mt-2 h-2 w-2 shrink-0 rounded-full bg-brand-500" />}
+                {c.unread && <span className="mt-1.5 h-2.5 w-2.5 shrink-0 rounded-full" style={{ background: "var(--accent-bright)" }} aria-label="Unread" />}
               </button>
             </li>
           ))}
         </ul>
       </section>
 
-      <section className={cx("flex min-h-0 flex-col", !active && "hidden lg:flex")}>
-        {!active ? <div className="flex flex-1 items-center justify-center"><Empty title="Select a conversation" /></div>
+      <section className={cx("flex min-h-0 flex-col", !active && "hidden lg:flex")} aria-label="Conversation">
+        {!active ? <div className="flex flex-1 items-center justify-center"><Empty icon={<MessageCircle size={22} />} title="Pick a conversation" body="Select a message on the left to read and reply." /></div>
           : loading && !thread ? <div className="muted p-6 text-sm">Loading…</div>
           : thread && <Thread key={thread.id} t={thread} members={members} saved={saved} me={me} can={can} onBack={() => setActive(undefined)} reload={() => { load(thread.id, true); router.refresh(); }} />}
       </section>
@@ -89,7 +108,7 @@ function Thread({ t, members, saved, me, can, onBack, reload }: { t: any; member
   const p = PLATFORMS[t.account.platform as PlatformId];
   const [body, setBody] = useState(""); const [ai, setAi] = useState(false); const [mode, setMode] = useState<"reply" | "note">("reply");
   const [err, setErr] = useState(""); const [info, setInfo] = useState(""); const [pending, start] = useTransition(); const [aiBusy, setAiBusy] = useState(false);
-  const [showEmoji, setShowEmoji] = useState(false); const [search, setSearch] = useState("");
+  const [showEmoji, setShowEmoji] = useState(false); const [search, setSearch] = useState(""); const [details, setDetails] = useState(false);
   const end = useRef<HTMLDivElement>(null);
   useEffect(() => { end.current?.scrollIntoView(); }, [t.messages.length]);
   const canReply = p.caps.dms.status !== "unavailable" || p.caps.comments.status !== "unavailable";
@@ -100,33 +119,32 @@ function Thread({ t, members, saved, me, can, onBack, reload }: { t: any; member
   const timeline = [...messages.map((m: any) => ({ ...m, _t: "m" })), ...t.notes.map((n: any) => ({ ...n, _t: "n" }))].sort((a, b) => a.createdAt.localeCompare(b.createdAt));
 
   return (
-    <div className="grid min-h-0 flex-1 xl:grid-cols-[1fr_280px]">
+    <div className={cx("relative grid min-h-0 flex-1", details && "xl:grid-cols-[1fr_290px]")}>
       <div className="flex min-h-0 flex-col">
-        <div className="line flex flex-wrap items-center gap-2 border-b px-4 py-2.5">
+        <div className="line flex flex-wrap items-center gap-2 border-b px-5 py-3.5">
           <button className="btn-ghost p-1.5 lg:hidden" onClick={onBack} aria-label="Back"><ChevronLeft size={16} /></button>
-          <Avatar src={t.contact?.avatarUrl} name={t.contact?.displayName ?? "?"} size={32} platform={t.account.platform} />
+          <Avatar src={t.contact?.avatarUrl} name={t.contact?.displayName ?? "?"} size={40} platform={t.account.platform} />
           <div className="min-w-0 flex-1"><div className="truncate font-semibold">{t.contact?.displayName ?? "Unknown"}</div>
-            <div className="muted flex items-center gap-1 text-xs"><PlatformBadge id={p.id} size={14} /> {p.name} {t.kind === "dm" ? "direct message" : t.kind} → {t.account.displayName} {t.account.isDemo && <DemoBadge />}</div></div>
-          <StatusBadge status={t.status} />
-          <input className="input w-36 py-1 text-xs" placeholder="Search thread" value={search} onChange={(e) => setSearch(e.target.value)} />
+            <div className="muted text-xs">{p.name.replace(" (Twitter)", "")} {t.kind === "dm" ? "message" : t.kind} to {t.account.displayName}</div></div>
           {can.reply && <>
             <button className="btn-ghost p-2" title={t.priority ? "Remove priority" : "Mark priority"} onClick={() => act(() => flagsAction(t.id, { priority: !t.priority }))}><Flag size={15} className={t.priority ? "fill-red-500 text-red-600 dark:text-red-400" : ""} /></button>
             <button className="btn-ghost p-2" title="Mark unread" onClick={() => act(() => flagsAction(t.id, { unread: true }))}><MailOpen size={15} /></button>
-            {t.status !== "RESOLVED" ? <button className="btn-secondary py-1" onClick={() => act(() => statusAction(t.id, "RESOLVED"))}><CheckCircle2 size={14} /> Resolve</button> : <button className="btn-secondary py-1" onClick={() => act(() => statusAction(t.id, "OPEN"))}>Reopen</button>}
-            <button className="btn-ghost p-2" title="Archive" onClick={() => act(() => statusAction(t.id, "ARCHIVED"))}><Archive size={15} /></button>
+            {t.status !== "RESOLVED" ? <button className="btn-secondary py-1.5" onClick={() => act(() => statusAction(t.id, "RESOLVED"))}><CheckCircle2 size={15} /> Mark done</button> : <button className="btn-secondary py-1" onClick={() => act(() => statusAction(t.id, "OPEN"))}>Reopen</button>}
+            <button className="btn-ghost p-2" title="Archive" aria-label="Archive" onClick={() => act(() => statusAction(t.id, "ARCHIVED"))}><Archive size={15} /></button>
           </>}
+          <button className={cx("btn-ghost p-2", details && "bg-[var(--soft)] text-[var(--text)]")} title="Details" aria-label="Contact details" aria-pressed={details} onClick={() => setDetails(!details)}><PanelRight size={16} /></button>
         </div>
         {t.subject && <div className="soft line border-b px-4 py-2 text-xs"><span className="muted">On post:</span> {t.subject}</div>}
-        <div className="flex-1 space-y-3 overflow-y-auto p-4">
+        <div className="flex-1 space-y-3 overflow-y-auto px-5 py-5">
           {timeline.map((m: any) => m._t === "n" ? (
             <div key={m.id} className="mx-auto max-w-lg rounded-lg border border-amber-500/30 bg-amber-500/10 px-3 py-2 text-xs"><div className="font-semibold"><StickyNote size={11} className="mr-1 inline" />Internal note · {m.userName}</div><div className="mt-0.5 whitespace-pre-wrap">{m.body}</div></div>
           ) : (
             <div key={m.id} className={cx("flex gap-2", m.direction === "outbound" && "flex-row-reverse")}>
               {m.direction === "inbound" && <Avatar src={m.authorAvatar} name={m.authorName} size={28} />}
-              <div className={cx("max-w-[75%] rounded-2xl px-3.5 py-2 text-sm", m.direction === "outbound" ? "bg-brand-500 text-white" : "soft")}>
+              <div className={cx("max-w-[75%] rounded-2xl px-3.5 py-2 text-sm", m.direction === "outbound" ? "bg-[var(--accent)] text-white" : "soft")}>
                 <div className="whitespace-pre-wrap break-words">{m.body}</div>
                 {(m.attachments ?? []).map((a: any, i: number) => a.url ? <a key={i} href={a.url} target="_blank" rel="noreferrer" className="mt-1 block text-xs underline">📎 {a.type} attachment</a> : <div key={i} className="mt-1 text-xs opacity-70">📎 {a.type}</div>)}
-                <div className={cx("mt-1 text-[10px]", m.direction === "outbound" ? "text-white/70" : "muted")}>{new Date(m.createdAt).toLocaleString()}{m.direction === "outbound" && ` · ${m.authorName} · ${m.status}`}{m.aiAssisted && " · AI-assisted"}{m.error && ` · ${m.error}`}</div>
+                <div className={cx("mt-1 text-[10px]", m.direction === "outbound" ? "text-white/70" : "muted")}>{new Date(m.createdAt).toLocaleString(undefined, { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" })}{m.direction === "outbound" && ` · ${m.authorName.split(" ")[0]}${m.status === "failed" ? " · failed" : ""}`}{m.aiAssisted && " · AI-assisted"}{m.error && ` · ${m.error}`}</div>
               </div>
             </div>
           ))}
@@ -165,7 +183,7 @@ function Thread({ t, members, saved, me, can, onBack, reload }: { t: any; member
           </div>
         )}
       </div>
-      <aside className="line hidden space-y-4 overflow-y-auto border-l p-4 xl:block">
+      {details && <aside className="line absolute inset-y-0 right-0 z-10 w-[290px] space-y-4 overflow-y-auto border-l p-5 shadow-xl xl:static xl:shadow-none" style={{ background: "var(--panel)" }}>
         <div className="text-center"><Avatar src={t.contact?.avatarUrl} name={t.contact?.displayName ?? "?"} size={56} /><div className="mt-2 font-semibold">{t.contact?.displayName}</div>{t.contact?.username && <div className="muted text-xs">@{t.contact.username}</div>}
           {t.contact && <a href={`/contacts?id=${t.contact.id}`} className="mt-1 inline-block text-xs text-brand-500">Open contact</a>}</div>
         <div><label className="label">Assigned to</label>
@@ -176,7 +194,7 @@ function Thread({ t, members, saved, me, can, onBack, reload }: { t: any; member
             {["OPEN", "PENDING", "RESOLVED", "ARCHIVED"].map((s) => <option key={s} value={s}>{s.toLowerCase()}</option>)}</select></div>
         <div><label className="label">Tags</label><TagEditor tags={t.tags} disabled={!can.reply} onSave={(tags) => start(async () => { await flagsAction(t.id, { tags }); reload(); })} /></div>
         {t.contact && <div className="text-xs"><div className="label">Contact</div><div>Status: <b>{t.contact.status}</b></div><div className="muted">Last interaction {new Date(t.contact.lastInteractionAt).toLocaleString()}</div>{t.contact.notes && <div className="soft mt-1 rounded p-2">{t.contact.notes}</div>}</div>}
-      </aside>
+      </aside>}
     </div>
   );
 }

@@ -5,12 +5,12 @@ type Fmt = "number" | "compact";
 const fmtFn = (f: Fmt) => (n: number) => f === "compact" ? Intl.NumberFormat("en", { notation: "compact", maximumFractionDigits: 1 }).format(n) : n.toLocaleString();
 
 // Categorical slots from the validated reference palette (fixed order, never cycled).
-const LIGHT = ["#2a78d6", "#eb6834", "#1baf7a", "#eda100", "#e87ba4", "#008300", "#6250d6", "#e34948"];
-const DARK = ["#3987e5", "#d95926", "#199e70", "#c98500", "#d55181", "#0ca30c", "#9085e9", "#e66767"];
+const LIGHT = ["#00a36f", "#eb6834", "#2a78d6", "#eda100", "#e87ba4", "#008300", "#6250d6", "#e34948"];
+const DARK = ["#16a978", "#d95926", "#3987e5", "#c98500", "#d55181", "#0ca30c", "#9085e9", "#e66767"];
 export const seriesVar = (i: number) => `var(--series-${(i % 8) + 1})`;
 export function ChartStyles() {
   const decl = (arr: string[]) => arr.map((c, i) => `--series-${i + 1}:${c};`).join("");
-  return <style>{`.viz{${decl(LIGHT)}--seq:#2a78d6;--grid:color-mix(in srgb,var(--muted) 22%,transparent)}@media (prefers-color-scheme:dark){.viz{${decl(DARK)}--seq:#3987e5}}`}</style>;
+  return <style>{`.viz{${decl(LIGHT)}--seq:#00b37a;--grid:color-mix(in srgb,var(--muted) 22%,transparent)}@media (prefers-color-scheme:dark){.viz{${decl(DARK)}--seq:#1fc48d}}`}</style>;
 }
 
 export interface Series { key: string; label: string; points: { date: string; value: number }[] }
@@ -81,4 +81,44 @@ export function Sparkline({ points }: { points: number[] }) {
   const min = Math.min(...points), max = Math.max(...points), W = 80, H = 24;
   const d = points.map((v, i) => `${i ? "L" : "M"}${(i / (points.length - 1)) * W},${H - 2 - ((v - min) / (max - min || 1)) * (H - 4)}`).join("");
   return <svg width={W} height={H} className="viz" aria-hidden><ChartStyles /><path d={d} fill="none" stroke="var(--seq)" strokeWidth={2} strokeLinecap="round" /></svg>;
+}
+
+/** Simple column chart: pale bars, current period solid brand green, tooltip on hover. */
+export function BarChart({ data, height = 220, format: f = "number", unit = "" }: { data: { label: string; value: number; detail?: string }[]; height?: number; format?: Fmt; unit?: string }) {
+  const format = fmtFn(f);
+  const [hover, setHover] = useState<number | null>(null);
+  if (!data.length) return null;
+  const max = Math.max(1, ...data.map((d) => d.value));
+  const nice = Math.pow(10, Math.floor(Math.log10(max)));
+  const top = Math.ceil(max / nice) * nice;
+  const ticks = [0, 0.25, 0.5, 0.75, 1].map((t) => t * top);
+  const active = hover ?? data.length - 1;
+  return (
+    <div className="relative" style={{ height }} role="img" aria-label={`Bar chart: ${data.map((d) => `${d.label} ${format(d.value)}${unit}`).join(", ")}`}>
+      <div className="absolute inset-0 flex flex-col justify-between pb-7 pl-10">
+        {ticks.slice().reverse().map((t) => (
+          <div key={t} className="relative h-0 border-t border-dashed" style={{ borderColor: "var(--line)" }}>
+            <span className="muted absolute -left-10 -top-2 w-8 text-right text-[11px] tabular-nums">{format(t)}</span>
+          </div>
+        ))}
+      </div>
+      <div className="absolute inset-0 flex items-end gap-2 pb-7 pl-12 pr-1 sm:gap-3">
+        {data.map((d, i) => {
+          const h = (d.value / top) * 100;
+          const on = i === active;
+          return (
+            <div key={d.label} className="relative flex h-full flex-1 flex-col justify-end" onMouseEnter={() => setHover(i)} onMouseLeave={() => setHover(null)} onFocus={() => setHover(i)} onBlur={() => setHover(null)} tabIndex={0}>
+              {on && (
+                <div className="pointer-events-none absolute left-1/2 z-10 -translate-x-1/2 whitespace-nowrap rounded-lg px-2.5 py-1.5 text-xs shadow-lg" style={{ bottom: `calc(${h}% + 10px)`, background: "var(--text)", color: "var(--panel)" }}>
+                  <div className="font-semibold">{format(d.value)}{unit}</div>{d.detail && <div className="opacity-75">{d.detail}</div>}
+                </div>
+              )}
+              <div className="w-full rounded-t-lg transition-all" style={{ height: `${Math.max(h, 1.5)}%`, background: on ? "var(--accent-bright)" : "color-mix(in srgb, var(--accent-bright) 16%, var(--panel))" }} />
+              <span className={`absolute -bottom-6 left-0 right-0 text-center text-[11.5px] ${on ? "font-semibold" : "muted"}`}>{d.label}</span>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
 }

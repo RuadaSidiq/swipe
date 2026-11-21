@@ -4,7 +4,7 @@ import { useRouter } from "next/navigation";
 import { Card, Field, Notice } from "@/components/ui";
 import { submitSupport, changePassword, createWorkspace, deleteBrand, deleteMyAccount, deleteWorkspace, saveBrand, saveNotificationPrefs, saveSlots, updateProfile, updateWorkspace } from "../_actions/settings";
 
-const TZS = typeof Intl !== "undefined" && "supportedValuesOf" in Intl ? (Intl as any).supportedValuesOf("timeZone") as string[] : ["UTC"];
+const TZS = ["UTC", ...(typeof Intl !== "undefined" && "supportedValuesOf" in Intl ? ((Intl as any).supportedValuesOf("timeZone") as string[]).filter((t) => t !== "UTC") : [])];
 const DAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 type R = { ok: boolean; error?: string };
 

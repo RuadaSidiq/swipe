@@ -21,7 +21,7 @@ export default async function AccountsPage({ searchParams }: { searchParams: Pro
   const platforms = PLATFORM_LIST.map((p) => ({ ...p, configured: isPlatformConfigured(p.id) }));
   return (
     <>
-      <PageHeader title="Accounts" subtitle={`${u.accounts} of ${isUnlimited(plan.limits.accounts) ? "unlimited" : plan.limits.accounts} on ${plan.name}`} />
+      <PageHeader title="Accounts" />
       <div className="mb-4 space-y-2">
         {sp.connected && <Notice tone="success">Connected {sp.connected} account{sp.connected === "1" ? "" : "s"}.</Notice>}
         {sp.error && <Notice tone="error">{sp.error}</Notice>}

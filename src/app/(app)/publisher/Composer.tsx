@@ -1,8 +1,8 @@
 "use client";
 import { useEffect, useMemo, useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { Sparkles, Wand2, X, Image as ImageIcon, Send, Clock, Save, AlertTriangle, CheckCircle2, Languages, Hash, ChevronDown, Repeat } from "lucide-react";
-import { Avatar, Card, DemoBadge, Notice, PlatformBadge, cx } from "@/components/ui";
+import { Sparkles, Wand2, X, Image as ImageIcon, Send, Clock, Save, AlertTriangle, CheckCircle2, Languages, Hash, ChevronDown, Repeat, Link as LinkIcon } from "lucide-react";
+import { Avatar, Notice, PlatformBadge, cx } from "@/components/ui";
 import { Thumb, Uploader, type Asset } from "@/components/media";
 import { Modal } from "../accounts/AccountsClient";
 import { PLATFORMS, type PlatformId } from "@/lib/platforms/registry";
@@ -75,7 +75,7 @@ export function Composer({ accounts, media: initialMedia, campaigns, brands, ini
 
   const submit = (action: "draft" | "schedule" | "publish_now") => start(async () => {
     setMsg(null);
-    if (action === "publish_now" && !confirm(`Publish now to ${targets.length} destination${targets.length > 1 ? "s" : ""}?`)) return;
+    if (action === "publish_now" && !needsApproval && !confirm(`Publish now to ${targets.length} destination${targets.length > 1 ? "s" : ""}?`)) return;
     const r = await savePostAction(payload(action));
     if (!r.ok) { setMsg({ tone: "error", text: r.error }); if (r.details) setReports(r.details as Report[]); return; }
     const st = (r.data as { status: string }).status;
@@ -98,137 +98,162 @@ export function Composer({ accounts, media: initialMedia, campaigns, brands, ini
     return [...g.entries()];
   }, [accounts]);
 
+  const [mode, setMode] = useState<"now" | "later">(initial.scheduledAt ? "later" : "now");
+  const [showLink, setShowLink] = useState(Boolean(initial.link));
+  const [aiMenu, setAiMenu] = useState(false);
+  const previewAcc = activeAcc ?? selected[0];
+  const previewT = previewAcc ? targets.find((t) => t.accountId === previewAcc.id) : undefined;
+  const primaryAction: "schedule" | "publish_now" = mode === "later" ? "schedule" : "publish_now";
+  const primaryLabel = needsApproval ? "Submit for approval" : mode === "later" ? "Schedule post" : "Publish now";
+  const canPrimary = needsApproval ? canSchedule : mode === "later" ? canSchedule : canPublish;
+  const errorList = reports.flatMap((r) => r.issues.filter((i) => i.level === "error").map((i) => ({ ...i, platform: r.platform })));
+
   return (
-    <div className="grid gap-4 xl:grid-cols-[1fr_380px]">
-      <div className="space-y-4">
-        <Card title="Publish to" actions={<span className="muted text-xs">{targets.length} selected</span>}>
-          {accounts.length === 0 ? <p className="muted text-sm">No connected accounts. <a className="text-brand-500" href="/accounts">Connect one</a> to start publishing.</p> : (
-            <div className="flex flex-wrap gap-2">
-              {grouped.map(([, list]) => list.map((a) => {
-                const on = targets.some((t) => t.accountId === a.id);
-                const disabled = a.status !== "CONNECTED";
-                return (
-                  <button key={a.id} type="button" disabled={disabled} onClick={() => toggleAccount(a)} title={disabled ? "Reconnect this account first" : a.displayName}
-                    className={cx("flex items-center gap-2 rounded-full border py-1 pl-1 pr-3 text-sm transition line", on ? "border-brand-500 bg-brand-500/10" : "opacity-70 hover:opacity-100", disabled && "cursor-not-allowed opacity-40")}>
-                    {a.avatarUrl ? <Avatar src={a.avatarUrl} name={a.displayName} size={24} platform={a.platform} /> : <PlatformBadge id={a.platform} size={22} />}
-                    <span className="max-w-[10rem] truncate">{a.displayName}</span>
-                  </button>
-                );
-              }))}
-            </div>
-          )}
-        </Card>
-
-        <Card pad={false}>
-          <div className="line flex gap-1 overflow-x-auto border-b px-2 pt-2">
-            <button className={cx("rounded-t-lg px-3 py-2 text-sm", tab === "all" ? "soft font-medium" : "muted")} onClick={() => setTab("all")}>Original</button>
-            {targets.map((t) => { const a = accounts.find((x) => x.id === t.accountId)!; const r = reports.find((x) => x.accountId === t.accountId); const bad = r?.issues.some((i) => i.level === "error");
-              return (<button key={t.accountId} onClick={() => setTab(t.accountId)} className={cx("flex items-center gap-1.5 whitespace-nowrap rounded-t-lg px-3 py-2 text-sm", tab === t.accountId ? "soft font-medium" : "muted")}>
-                <PlatformBadge id={a.platform} size={16} /> {a.displayName.slice(0, 18)} {t.customize && <span className="h-1.5 w-1.5 rounded-full bg-brand-500" title="Customized" />}
-                {bad ? <AlertTriangle size={13} className="text-red-600 dark:text-red-400" /> : r ? <CheckCircle2 size={13} className="text-emerald-700 dark:text-emerald-400" /> : null}</button>); })}
-          </div>
-          <div className="space-y-3 p-4">
-            {tab === "all" || !activeTarget || !activeAcc ? (
-              <>
-                {platforms.some((p) => PLATFORMS[p].limits.title) && <input className="input" placeholder={`Title (used by ${platforms.filter((p) => PLATFORMS[p].limits.title).map((p) => PLATFORMS[p].name).join(", ")})`} value={title} onChange={(e) => setTitle(e.target.value)} />}
-                <textarea ref={bodyRef} className="input min-h-[180px] resize-y leading-relaxed" placeholder="What do you want to share?" value={body} onChange={(e) => setBody(e.target.value)} />
-                <CharCounters text={body} link={link} platforms={platforms} />
-                <input className="input" placeholder="Link (optional)" value={link} onChange={(e) => setLink(e.target.value)} type="url" />
-                <MediaStrip ids={mediaIds} byId={mediaById} onRemove={(id) => setMediaIds((m) => m.filter((x) => x !== id))} onMove={(from, to) => setMediaIds((m) => { const c = [...m]; const [x] = c.splice(from, 1); c.splice(to, 0, x); return c; })} onAdd={() => setPicker("base")} />
-              </>
-            ) : (
-              <>
-                <div className="flex flex-wrap items-center justify-between gap-2">
-                  <div className="flex items-center gap-2 text-sm"><PlatformBadge id={activeAcc.platform} /> <b>{PLATFORMS[activeAcc.platform as PlatformId].name}</b> version for {activeAcc.displayName}</div>
-                  <div className="flex gap-2">
-                    <label className="flex items-center gap-1.5 text-sm"><input type="checkbox" checked={activeTarget.customize} onChange={(e) => patch(activeTarget.accountId, { customize: e.target.checked, body: activeTarget.body || body, title: activeTarget.title || title, link: activeTarget.link || link })} /> Customize text</label>
-                    <label className="flex items-center gap-1.5 text-sm"><input type="checkbox" checked={activeTarget.useCustomMedia} onChange={(e) => patch(activeTarget.accountId, { useCustomMedia: e.target.checked, mediaIds: activeTarget.mediaIds.length ? activeTarget.mediaIds : mediaIds })} /> Custom media</label>
-                    <button className="btn-ghost py-1 text-red-600 dark:text-red-400" onClick={() => { toggleAccount(activeAcc); setTab("all"); }}><X size={14} /> Remove</button>
-                  </div>
-                </div>
-                {activeTarget.customize ? (
-                  <>
-                    {PLATFORMS[activeAcc.platform as PlatformId].limits.title && <input className="input" placeholder="Title" value={activeTarget.title} onChange={(e) => patch(activeTarget.accountId, { title: e.target.value })} />}
-                    <textarea className="input min-h-[160px]" value={activeTarget.body} onChange={(e) => patch(activeTarget.accountId, { body: e.target.value })} />
-                    <CharCounters text={activeTarget.body} link={activeTarget.link} platforms={[activeAcc.platform as PlatformId]} />
-                    {aiEnabled && <div className="flex flex-wrap gap-2">
-                      {(["shorter", "professional", "conversational"] as const).map((m) => <button key={m} className="btn-secondary py-1 text-xs" disabled={!!aiBusy} onClick={() => runAI(m, () => aiRewrite({ text: activeTarget.body, mode: m, platform: activeAcc.platform as PlatformId, brandId: brandId || null }), (d) => patch(activeTarget.accountId, { body: d }))}><Wand2 size={12} /> {m}</button>)}
-                    </div>}
-                    <input className="input" placeholder="Link" value={activeTarget.link} onChange={(e) => patch(activeTarget.accountId, { link: e.target.value })} />
-                  </>
-                ) : <p className="muted soft whitespace-pre-wrap rounded-lg p-3 text-sm">{body || "Uses the original text."}</p>}
-                {activeTarget.useCustomMedia && <MediaStrip ids={activeTarget.mediaIds} byId={mediaById} onRemove={(id) => patch(activeTarget.accountId, { mediaIds: activeTarget.mediaIds.filter((x) => x !== id) })} onMove={() => {}} onAdd={() => setPicker(activeTarget.accountId)} />}
-                <PlatformOptions acc={activeAcc} t={activeTarget} onChange={(options) => patch(activeTarget.accountId, { options: { ...activeTarget.options, ...options } })} />
-              </>
-            )}
-          </div>
-        </Card>
-
-        {aiEnabled && (
-          <Card title={<span className="flex items-center gap-2"><Sparkles size={15} className="text-brand-500" /> AI assistant</span>} actions={<button className="btn-ghost py-1 text-xs" onClick={() => setAiOpen(!aiOpen)}>{aiOpen ? "Hide" : "Show"} <ChevronDown size={13} /></button>}>
-            <div className="flex flex-wrap gap-2">
-              <button className="btn-secondary py-1.5 text-sm" disabled={!!aiBusy || !body.trim() || platforms.length < 1} onClick={() => runAI("adapt", () => aiAdapt({ text: body, platforms, brandId: brandId || null }), (d: Record<string, { body: string; title?: string }>) =>
-                setTargets((ts) => ts.map((t) => { const a = accounts.find((x) => x.id === t.accountId)!; const v = d[a.platform]; return v ? { ...t, customize: true, body: v.body, title: v.title ?? "" } : t; })))}>
-                <Sparkles size={14} /> {aiBusy === "adapt" ? "Adapting…" : "Tailor for each network"}</button>
-              {REWRITES.slice(0, 4).map(([m, l]) => <button key={m} className="btn-secondary py-1.5 text-sm" disabled={!!aiBusy || !body.trim()} onClick={() => runAI(m, () => aiRewrite({ text: body, mode: m, brandId: brandId || null }), setBody)}><Wand2 size={14} /> {aiBusy === m ? "Working…" : l}</button>)}
-              <button className="btn-secondary py-1.5 text-sm" disabled={!!aiBusy || !body.trim()} onClick={() => runAI("hashtags", () => aiGenerate({ kind: "hashtags", topic: body, platforms, brandId: brandId || null }), (d) => setBody((b) => `${b.trim()}\n\n${d}`))}><Hash size={14} /> Hashtags</button>
-              <button className="btn-secondary py-1.5 text-sm" disabled={!!aiBusy || !body.trim()} onClick={() => { const l = prompt("Translate into which language?", "Spanish"); if (l) runAI("translate", () => aiRewrite({ text: body, mode: "translate", language: l, brandId: brandId || null }), setBody); }}><Languages size={14} /> Translate</button>
-            </div>
-            {aiOpen && <AiGenerate busy={!!aiBusy} onRun={(kind, topic) => runAI("gen", () => aiGenerate({ kind, topic, platforms, brandId: brandId || null }), (d) => { setBody(d); setTab("all"); })} more={REWRITES.slice(4)} onRewrite={(m) => runAI(m, () => aiRewrite({ text: body, mode: m, brandId: brandId || null }), setBody)} />}
-            <p className="muted mt-2 text-xs">Review AI text before publishing.</p>
-          </Card>
-        )}
-
-        <Card title="Details">
-          <div className="grid gap-3 sm:grid-cols-3">
-            <label><span className="label">Campaign</span><select className="input" value={campaignId} onChange={(e) => setCampaignId(e.target.value)}><option value="">None</option>{campaigns.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}</select></label>
-            <label><span className="label">Brand voice</span><select className="input" value={brandId} onChange={(e) => setBrandId(e.target.value)}><option value="">Default</option>{brands.map((b) => <option key={b.id} value={b.id}>{b.name}</option>)}</select></label>
-            <label><span className="label">Tags</span><input className="input" value={tags} onChange={(e) => setTags(e.target.value)} placeholder="launch, q3" /></label>
-          </div>
-        </Card>
+    <div>
+      <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
+        <h1 className="font-display text-[26px] font-semibold">{initial.id ? "Edit post" : "Create post"}</h1>
+        <button className="btn-ghost" disabled={pending} onClick={() => submit("draft")}><Save size={16} /> Save draft</button>
       </div>
 
-      <div className="space-y-4 xl:sticky xl:top-20 xl:self-start">
-        <Card title="Schedule">
-          <label className="label">Publish at ({timezone})</label>
-          <input type="datetime-local" className="input" value={when} onChange={(e) => setWhen(e.target.value)} min={toLocalInput(new Date().toISOString())} />
-          <div className="mt-2 flex items-center gap-2 text-sm">
-            <Repeat size={14} className="muted" />
-            <select className="input py-1.5" value={recurrence ? `${recurrence.freq}` : ""} onChange={(e) => setRecurrence(e.target.value ? { freq: e.target.value as "daily", interval: 1, count: recurrence?.count ?? 4 } : null)}>
-              <option value="">Doesn&apos;t repeat</option><option value="daily">Daily</option><option value="weekly">Weekly</option><option value="monthly">Monthly</option>
-            </select>
-            {recurrence && <input type="number" min={2} max={52} className="input w-20 py-1.5" value={recurrence.count} onChange={(e) => setRecurrence({ ...recurrence, count: Number(e.target.value) })} title="Number of occurrences" />}
-          </div>
-          {needsApproval && <p className="mt-2 text-xs text-amber-700 dark:text-amber-400">This workspace requires approval — scheduling submits the post to an approver.</p>}
-          <div className="mt-3 grid gap-2">
-            {canSchedule && <button className="btn-primary" disabled={pending || !targets.length || !when || errors > 0} onClick={() => submit("schedule")}><Clock size={15} /> {needsApproval ? "Submit for approval" : initial.id && initial.status === "SCHEDULED" ? "Update schedule" : "Schedule"}</button>}
-            {canPublish && !needsApproval && <button className="btn-secondary" disabled={pending || !targets.length || errors > 0} onClick={() => submit("publish_now")}><Send size={15} /> Publish now</button>}
-            <button className="btn-ghost" disabled={pending} onClick={() => submit("draft")}><Save size={15} /> Save draft</button>
-          </div>
-          {touched && errors > 0 && <p className="mt-2 text-xs text-red-600 dark:text-red-400">{errors} issue{errors > 1 ? "s" : ""} to fix</p>}
-        </Card>
-        {msg && <Notice tone={msg.tone}>{msg.text}</Notice>}
-        {touched && reports.length > 0 && (
-          <Card title="Checks">
-            <ul className="space-y-2 text-sm">
-              {reports.map((r) => (
-                <li key={r.accountId}>
-                  <div className="flex items-center gap-1.5 font-medium"><PlatformBadge id={r.platform} size={16} /> {r.accountName}
-                    {r.issues.length === 0 && <CheckCircle2 size={14} className="text-emerald-700 dark:text-emerald-400" />}</div>
-                  {r.issues.map((i, k) => <div key={k} className={cx("ml-6 text-xs", i.level === "error" ? "text-red-600 dark:text-red-400" : "text-amber-700 dark:text-amber-400")}>{i.level === "error" ? "✕" : "!"} {i.message}</div>)}
-                </li>
-              ))}
-            </ul>
-          </Card>
-        )}
-        {targets.length > 0 && (
-          <Card title="Preview">
-            <div className="space-y-4">
-              {(tab === "all" ? targets : targets.filter((t) => t.accountId === tab)).map((t) => { const a = accounts.find((x) => x.id === t.accountId)!; const v = versionFor(t);
-                return <Preview key={t.accountId} acc={a} body={v.body} title={v.title} link={v.link} media={v.mediaIds.map((id) => mediaById.get(id)).filter(Boolean) as Asset[]} />; })}
+      <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_360px]">
+        <div className="flex min-w-0 flex-col gap-6">
+          <section className="panel p-6">
+            <div className="mb-3 flex items-center justify-between"><h2 className="section-title">Post to</h2><a href="/accounts" className="text-sm font-medium text-[var(--accent)]">Add account</a></div>
+            {accounts.length === 0 ? <p className="muted text-sm">Connect an account to start posting.</p> : (
+              <div className="flex flex-wrap gap-2">
+                {grouped.map(([, list]) => list.map((a) => {
+                  const on = targets.some((t) => t.accountId === a.id);
+                  const disabled = a.status !== "CONNECTED";
+                  return (
+                    <button key={a.id} type="button" disabled={disabled} onClick={() => toggleAccount(a)} aria-pressed={on} title={disabled ? "Reconnect this account first" : a.displayName}
+                      className={cx("flex items-center gap-2 rounded-full border py-1.5 pl-1.5 pr-3.5 text-sm font-medium transition", on ? "border-[var(--accent-bright)] bg-[var(--accent-soft)]" : "border-[var(--line-strong)] hover:bg-[var(--soft)]", disabled && "cursor-not-allowed opacity-40")}>
+                      <PlatformBadge id={a.platform} size={24} />
+                      <span className="max-w-[9rem] truncate">{a.displayName}</span>
+                      {on && <CheckCircle2 size={15} className="text-[var(--accent)]" />}
+                    </button>
+                  );
+                }))}
+              </div>
+            )}
+          </section>
+
+          <section className="panel overflow-hidden">
+            {targets.length > 0 && (
+              <div className="flex gap-1 overflow-x-auto px-4 pt-4" role="tablist" aria-label="Customise per network">
+                <button role="tab" aria-selected={tab === "all"} className="tab-link whitespace-nowrap" data-active={tab === "all"} onClick={() => setTab("all")}>All networks</button>
+                {targets.map((t) => { const a = accounts.find((x) => x.id === t.accountId)!; const bad = touched && reports.find((x) => x.accountId === t.accountId)?.issues.some((i) => i.level === "error");
+                  return (
+                    <button key={t.accountId} role="tab" aria-selected={tab === t.accountId} className="tab-link whitespace-nowrap" data-active={tab === t.accountId} onClick={() => setTab(t.accountId)}>
+                      <PlatformBadge id={a.platform} size={18} /> {PLATFORMS[a.platform as PlatformId].name.replace(" (Twitter)", "")}
+                      {t.customize && <span className="h-1.5 w-1.5 rounded-full bg-[var(--accent-bright)]" title="Customised" />}
+                      {bad && <AlertTriangle size={13} className="text-red-600" aria-label="Has issues" />}
+                    </button>); })}
+              </div>
+            )}
+
+            <div className="flex flex-col gap-3 p-6 pt-4">
+              {tab === "all" || !activeTarget || !activeAcc ? (
+                <>
+                  {platforms.some((p) => PLATFORMS[p].limits.title) && <input className="input" placeholder="Title" value={title} onChange={(e) => setTitle(e.target.value)} aria-label="Title" />}
+                  <textarea ref={bodyRef} className="input min-h-[200px] resize-y border-0 px-0 text-[15px] leading-relaxed shadow-none focus:shadow-none" placeholder="What do you want to share?" value={body} onChange={(e) => setBody(e.target.value)} aria-label="Post text" />
+                  {mediaIds.length > 0 && <MediaStrip ids={mediaIds} byId={mediaById} onRemove={(id) => setMediaIds((m) => m.filter((x) => x !== id))} onMove={(from, to) => setMediaIds((m) => { const c = [...m]; const [x] = c.splice(from, 1); c.splice(to, 0, x); return c; })} onAdd={() => setPicker("base")} />}
+                  {showLink && <input className="input" placeholder="https://" value={link} onChange={(e) => setLink(e.target.value)} type="url" aria-label="Link" />}
+                </>
+              ) : (
+                <>
+                  <div className="flex flex-wrap items-center gap-3 text-sm">
+                    <label className="flex items-center gap-2"><input type="checkbox" className="accent-[var(--accent)]" checked={activeTarget.customize} onChange={(e) => patch(activeTarget.accountId, { customize: e.target.checked, body: activeTarget.body || body, title: activeTarget.title || title, link: activeTarget.link || link })} /> Custom text for {PLATFORMS[activeAcc.platform as PlatformId].name.replace(" (Twitter)", "")}</label>
+                    <label className="flex items-center gap-2"><input type="checkbox" className="accent-[var(--accent)]" checked={activeTarget.useCustomMedia} onChange={(e) => patch(activeTarget.accountId, { useCustomMedia: e.target.checked, mediaIds: activeTarget.mediaIds.length ? activeTarget.mediaIds : mediaIds })} /> Custom media</label>
+                    <button className="btn-ghost ml-auto px-2 py-1 text-red-600" onClick={() => { toggleAccount(activeAcc); setTab("all"); }}><X size={14} /> Remove</button>
+                  </div>
+                  {activeTarget.customize ? (
+                    <>
+                      {PLATFORMS[activeAcc.platform as PlatformId].limits.title && <input className="input" placeholder="Title" value={activeTarget.title} onChange={(e) => patch(activeTarget.accountId, { title: e.target.value })} />}
+                      <textarea className="input min-h-[180px] text-[15px] leading-relaxed" value={activeTarget.body} onChange={(e) => patch(activeTarget.accountId, { body: e.target.value })} aria-label="Custom text" />
+                      <input className="input" placeholder="Link (optional)" value={activeTarget.link} onChange={(e) => patch(activeTarget.accountId, { link: e.target.value })} />
+                    </>
+                  ) : <p className="soft muted whitespace-pre-wrap rounded-xl p-4 text-sm">{body || "Uses the text from All networks."}</p>}
+                  {activeTarget.useCustomMedia && <MediaStrip ids={activeTarget.mediaIds} byId={mediaById} onRemove={(id) => patch(activeTarget.accountId, { mediaIds: activeTarget.mediaIds.filter((x) => x !== id) })} onMove={() => {}} onAdd={() => setPicker(activeTarget.accountId)} />}
+                  <PlatformOptions acc={activeAcc} t={activeTarget} onChange={(options) => patch(activeTarget.accountId, { options: { ...activeTarget.options, ...options } })} />
+                </>
+              )}
             </div>
-          </Card>
-        )}
+
+            <div className="flex flex-wrap items-center gap-1 border-t px-4 py-3" style={{ borderColor: "var(--line)" }}>
+              <button className="btn-ghost px-3 py-2" onClick={() => setPicker(tab === "all" || !activeTarget ? "base" : activeTarget.accountId)}><ImageIcon size={17} /> Media</button>
+              {tab === "all" && <button className={cx("btn-ghost px-3 py-2", showLink && "text-[var(--accent)]")} onClick={() => setShowLink(!showLink)}><LinkIcon size={17} /> Link</button>}
+              {aiEnabled && (
+                <div className="relative">
+                  <button className="btn-ghost px-3 py-2" disabled={!!aiBusy} onClick={() => setAiMenu(!aiMenu)} aria-expanded={aiMenu}><Sparkles size={17} /> {aiBusy ? "Writing…" : "AI"} <ChevronDown size={14} /></button>
+                  {aiMenu && (
+                    <div className="panel absolute bottom-full left-0 z-20 mb-2 w-60 p-1.5" onClick={() => setAiMenu(false)}>
+                      <button className="tab-link w-full" disabled={!body.trim() || platforms.length < 1} onClick={() => runAI("adapt", () => aiAdapt({ text: body, platforms, brandId: brandId || null }), (d: Record<string, { body: string; title?: string }>) =>
+                        setTargets((ts) => ts.map((t) => { const a = accounts.find((x) => x.id === t.accountId)!; const v = d[a.platform]; return v ? { ...t, customize: true, body: v.body, title: v.title ?? "" } : t; })))}><Sparkles size={14} /> Tailor for each network</button>
+                      {REWRITES.slice(0, 3).map(([m, l]) => <button key={m} className="tab-link w-full" disabled={!body.trim()} onClick={() => runAI(m, () => aiRewrite({ text: body, mode: m, brandId: brandId || null }), setBody)}><Wand2 size={14} /> {l}</button>)}
+                      <button className="tab-link w-full" disabled={!body.trim()} onClick={() => runAI("hashtags", () => aiGenerate({ kind: "hashtags", topic: body, platforms, brandId: brandId || null }), (d) => setBody((b) => `${b.trim()}\n\n${d}`))}><Hash size={14} /> Add hashtags</button>
+                      <button className="tab-link w-full" disabled={!body.trim()} onClick={() => { const l = window.prompt("Translate into which language?", "French"); if (l) runAI("translate", () => aiRewrite({ text: body, mode: "translate", language: l, brandId: brandId || null }), setBody); }}><Languages size={14} /> Translate</button>
+                      <button className="tab-link w-full" onClick={() => setAiOpen(true)}><Sparkles size={14} /> Write from a topic</button>
+                    </div>
+                  )}
+                </div>
+              )}
+              <div className="ml-auto"><CharCounters text={tab === "all" || !activeTarget?.customize ? body : activeTarget.body} link={link} platforms={tab === "all" || !activeAcc ? platforms : [activeAcc.platform as PlatformId]} /></div>
+            </div>
+            {aiOpen && aiEnabled && <div className="border-t px-6 pb-5" style={{ borderColor: "var(--line)" }}><AiGenerate busy={!!aiBusy} onRun={(kind, topic) => runAI("gen", () => aiGenerate({ kind, topic, platforms, brandId: brandId || null }), (d) => { setBody(d); setTab("all"); setAiOpen(false); })} more={REWRITES.slice(3)} onRewrite={(m) => runAI(m, () => aiRewrite({ text: body, mode: m, brandId: brandId || null }), setBody)} /></div>}
+          </section>
+
+          <details className="panel group px-6 py-4">
+            <summary className="flex cursor-pointer list-none items-center justify-between text-sm font-medium [&::-webkit-details-marker]:hidden">More options <ChevronDown size={16} className="muted transition group-open:rotate-180" /></summary>
+            <div className="mt-4 grid gap-4 sm:grid-cols-3">
+              <label><span className="label">Campaign</span><select className="input" value={campaignId} onChange={(e) => setCampaignId(e.target.value)}><option value="">None</option>{campaigns.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}</select></label>
+              <label><span className="label">Brand voice</span><select className="input" value={brandId} onChange={(e) => setBrandId(e.target.value)}><option value="">Default</option>{brands.map((b) => <option key={b.id} value={b.id}>{b.name}</option>)}</select></label>
+              <label><span className="label">Tags</span><input className="input" value={tags} onChange={(e) => setTags(e.target.value)} placeholder="launch, summer" /></label>
+            </div>
+          </details>
+        </div>
+
+        <div className="flex flex-col gap-6 lg:sticky lg:top-24 lg:self-start">
+          <section className="panel p-6">
+            <h2 className="section-title mb-3">When</h2>
+            <div className="soft mb-4 grid grid-cols-2 gap-1 rounded-xl p-1" role="radiogroup" aria-label="When to publish">
+              {(["now", "later"] as const).map((m) => <button key={m} role="radio" aria-checked={mode === m} onClick={() => setMode(m)} className={cx("rounded-lg py-2 text-sm font-medium transition", mode === m ? "bg-[var(--panel)] shadow-sm" : "muted")}>{m === "now" ? "Now" : "Later"}</button>)}
+            </div>
+            {mode === "later" && (
+              <div className="mb-4 flex flex-col gap-2">
+                <input type="datetime-local" className="input" value={when} onChange={(e) => setWhen(e.target.value)} min={toLocalInput(new Date().toISOString())} aria-label={`Date and time (${timezone})`} />
+                <div className="flex items-center gap-2">
+                  <Repeat size={15} className="muted shrink-0" />
+                  <select className="input py-2" value={recurrence ? recurrence.freq : ""} onChange={(e) => setRecurrence(e.target.value ? { freq: e.target.value as "daily", interval: 1, count: recurrence?.count ?? 4 } : null)} aria-label="Repeat">
+                    <option value="">Doesn&apos;t repeat</option><option value="daily">Daily</option><option value="weekly">Weekly</option><option value="monthly">Monthly</option>
+                  </select>
+                  {recurrence && <input type="number" min={2} max={52} className="input w-20 py-2" value={recurrence.count} onChange={(e) => setRecurrence({ ...recurrence, count: Number(e.target.value) })} aria-label="Times" />}
+                </div>
+                <span className="muted text-xs">{timezone}</span>
+              </div>
+            )}
+            <button className="btn-primary w-full py-3" disabled={pending || !canPrimary || !targets.length || (mode === "later" && !when) || errors > 0} onClick={() => submit(primaryAction)}>
+              {mode === "later" ? <Clock size={16} /> : <Send size={16} />} {pending ? "Saving…" : primaryLabel}
+            </button>
+            {!targets.length && <p className="muted mt-2 text-center text-xs">Choose at least one account</p>}
+            {msg && <div className="mt-3"><Notice tone={msg.tone}>{msg.text}</Notice></div>}
+            {touched && errorList.length > 0 && (
+              <ul className="mt-4 flex flex-col gap-2 text-[13px]">
+                {errorList.slice(0, 5).map((e, i) => <li key={i} className="flex gap-2 text-red-700 dark:text-red-400"><PlatformBadge id={e.platform} size={16} className="mt-0.5" /><span>{e.message.replace(/^[^:]+:\s*/, "")}</span></li>)}
+                {errorList.length > 5 && <li className="muted">+{errorList.length - 5} more</li>}
+              </ul>
+            )}
+          </section>
+
+          {selected.length > 0 && previewAcc && (
+            <section className="panel p-6">
+              <div className="mb-3 flex items-center justify-between gap-2">
+                <h2 className="section-title">Preview</h2>
+                {selected.length > 1 && <select className="input w-auto py-1.5 text-xs" value={previewAcc.id} onChange={(e) => setTab(e.target.value)} aria-label="Preview network">{selected.map((a) => <option key={a.id} value={a.id}>{PLATFORMS[a.platform as PlatformId].name}</option>)}</select>}
+              </div>
+              {previewT && (() => { const v = versionFor(previewT); return <Preview acc={previewAcc} body={v.body} title={v.title} link={v.link} media={v.mediaIds.map((id) => mediaById.get(id)).filter(Boolean) as Asset[]} />; })()}
+            </section>
+          )}
+        </div>
       </div>
 
       {picker && (
@@ -237,10 +262,10 @@ export function Composer({ accounts, media: initialMedia, campaigns, brands, ini
           <div className="mt-3 grid max-h-[50vh] grid-cols-3 gap-2 overflow-y-auto sm:grid-cols-5">
             {library.filter((m) => m.kind !== "document").map((m) => {
               const cur = picker === "base" ? mediaIds : targets.find((t) => t.accountId === picker)?.mediaIds ?? [];
-              return <button key={m.id} onClick={() => add(m.id)} className={cx("relative aspect-square overflow-hidden rounded-lg border line", cur.includes(m.id) && "ring-2 ring-brand-500")}><Thumb a={m} />{cur.includes(m.id) && <span className="absolute right-1 top-1 rounded-full bg-brand-500 px-1.5 text-xs text-white">{cur.indexOf(m.id) + 1}</span>}</button>;
+              return <button key={m.id} onClick={() => add(m.id)} className={cx("relative aspect-square overflow-hidden rounded-xl", cur.includes(m.id) && "ring-2 ring-[var(--accent-bright)]")}><Thumb a={m} />{cur.includes(m.id) && <span className="absolute right-1 top-1 rounded-full bg-[var(--accent)] px-1.5 text-xs text-white">{cur.indexOf(m.id) + 1}</span>}</button>;
             })}
           </div>
-          <div className="mt-3 flex justify-end"><button className="btn-primary" onClick={() => setPicker(null)}>Done</button></div>
+          <div className="mt-4 flex justify-end"><button className="btn-primary" onClick={() => setPicker(null)}>Done</button></div>
         </Modal>
       )}
     </div>
@@ -253,12 +278,14 @@ export function Composer({ accounts, media: initialMedia, campaigns, brands, ini
 }
 
 function CharCounters({ text, link, platforms }: { text: string; link: string; platforms: PlatformId[] }) {
-  if (!platforms.length) return <div className="muted text-xs">{[...text].length} characters</div>;
+  // Show only the network closest to its limit; the full list is in each network tab.
+  if (!platforms.length) return <span className="muted text-xs tabular-nums">{[...text].length}</span>;
+  const rows = platforms.map((p) => { const full = p === "facebook" || p === "linkedin" || p === "pinterest" || !link || text.includes(link) ? text : `${text} ${link}`; const n = countChars(p, full); const lim = PLATFORMS[p].limits.text; return { p, n, lim, left: lim - n }; });
+  const tight = rows.sort((a, b) => a.left - b.left)[0];
   return (
-    <div className="flex flex-wrap gap-2">
-      {platforms.map((p) => { const full = p === "facebook" || p === "linkedin" || p === "pinterest" || !link || text.includes(link) ? text : `${text} ${link}`; const n = countChars(p, full); const lim = PLATFORMS[p].limits.text; const over = n > lim;
-        return <span key={p} className={cx("chip soft", over && "!bg-red-500/15 text-red-600")}><PlatformBadge id={p} size={12} /> {n.toLocaleString()}/{lim.toLocaleString()}</span>; })}
-    </div>
+    <span className={cx("flex items-center gap-1.5 text-xs tabular-nums", tight.left < 0 ? "font-semibold text-red-600 dark:text-red-400" : "muted")} title={rows.map((r) => `${PLATFORMS[r.p].name}: ${r.n}/${r.lim}`).join("\n")}>
+      <PlatformBadge id={tight.p} size={14} /> {tight.n.toLocaleString()} / {tight.lim.toLocaleString()}
+    </span>
   );
 }
 

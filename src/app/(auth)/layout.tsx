@@ -1,45 +1,35 @@
-const DAYS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
-const SLOTS: { d: number; t: string; text: string; c: string; tag?: string }[] = [
-  { d: 0, t: "09:00", text: "Spring menu teaser", c: "#E1306C" }, { d: 0, t: "17:30", text: "Behind the bar", c: "#000" },
-  { d: 1, t: "12:00", text: "Hiring: baristas", c: "#0A66C2" }, { d: 2, t: "08:15", text: "Launch day", c: "#1877F2", tag: "Live" },
-  { d: 2, t: "19:00", text: "Q&A replies", c: "#25D366" }, { d: 3, t: "10:00", text: "Recipe card", c: "#E60023" },
-  { d: 4, t: "11:30", text: "Weekend workshop", c: "#FF0000", tag: "Approval" }, { d: 5, t: "09:30", text: "Giveaway", c: "#E1306C" },
-];
+import { SwipeLogo, PlatformBadge } from "@/components/ui";
+
+const BARS = [42, 48, 39, 55, 51, 72];
 
 export default function AuthLayout({ children }: { children: React.ReactNode }) {
   return (
-    <main className="grid min-h-screen lg:grid-cols-[minmax(420px,1fr)_1.15fr]">
-      <div className="flex items-center justify-center px-6 py-12">
-        <div className="w-full max-w-[360px]">
-          <div className="mb-10 flex items-center gap-2">
-            <span className="grid h-8 w-8 place-items-center rounded-full" style={{ background: "var(--signal)" }} aria-hidden><span className="h-3 w-3 rounded-full" style={{ background: "var(--console)" }} /></span>
-            <span className="font-display text-xl font-semibold">Orbit</span>
+    <main className="grid min-h-screen lg:grid-cols-2">
+      <div className="flex items-center justify-center px-6 py-12" style={{ background: "var(--panel)" }}>
+        <div className="w-full max-w-[380px]">
+          <div className="mb-10 flex items-center gap-2.5">
+            <SwipeLogo size={36} />
+            <span className="leading-tight"><span className="block font-display text-lg font-semibold">Orbit</span><span className="muted block text-xs">by Swipe</span></span>
           </div>
           {children}
         </div>
       </div>
 
-      <div className="relative hidden overflow-hidden lg:flex lg:flex-col lg:justify-center lg:gap-16" style={{ background: "var(--console)" }} aria-hidden>
-        <div className="px-12">
-          <p className="font-display text-[44px] font-semibold leading-[1.05] tracking-tight text-white">Twelve networks.<br />One schedule.<br />One inbox.</p>
-        </div>
-        <div className="px-12">
-          <div className="grid grid-cols-7 gap-2">
-            {DAYS.map((d, i) => (
-              <div key={d} className="relative min-h-[210px]">
-                <div className={`mb-2 border-b border-white/10 pb-2 font-display text-sm ${i === 2 ? "text-white" : "text-[#7F9891]"}`}>{d}</div>
-                {i === 2 && <div className="absolute bottom-0 top-8 left-[46%] w-[2px]" style={{ background: "var(--signal)", boxShadow: "0 0 14px rgba(255,201,60,.65)" }} />}
-                <div className="relative flex flex-col gap-1.5">
-                  {SLOTS.filter((s) => s.d === i).map((s) => (
-                    <div key={s.text} className="rounded-lg px-2 py-1.5" style={{ background: s.tag === "Approval" ? "rgba(255,201,60,.16)" : "rgba(63,184,164,.16)" }}>
-                      <div className="flex items-center justify-between text-[11px] tabular-nums" style={{ color: s.tag === "Approval" ? "#FFD35C" : "#9FD9CD" }}>{s.t}<span className="h-2.5 w-2.5 rounded-[3px]" style={{ background: s.c }} /></div>
-                      <div className="mt-0.5 text-[11.5px] leading-snug text-[#E6EEEB]">{s.text}</div>
-                      {s.tag && <div className="mt-0.5 text-[10px]" style={{ color: s.tag === "Live" ? "#FF8A8D" : "#FFD35C" }}>{s.tag}</div>}
-                    </div>
-                  ))}
-                </div>
-              </div>
-            ))}
+      <div className="relative hidden items-center justify-center overflow-hidden p-12 lg:flex" style={{ background: "linear-gradient(145deg, #E6F7F0 0%, #BFEBD9 55%, #8ED9BB 100%)" }} aria-hidden>
+        <div className="w-full max-w-[440px]">
+          <p className="mb-8 font-display text-[38px] font-semibold leading-[1.1] text-[#0F1724]">All your social accounts in one calm place.</p>
+          <div className="rounded-3xl bg-white p-6 shadow-[0_30px_60px_-30px_rgba(15,23,36,.35)]">
+            <div className="flex items-start justify-between">
+              <div><div className="text-sm font-medium text-[#0F1724]">Followers</div><div className="num mt-1 text-[32px] font-semibold text-[#0F1724]">59.4K</div></div>
+              <span className="rounded-full bg-[#E6F7F0] px-2.5 py-1 text-xs font-semibold text-[#00714B]">↑ 6.3%</span>
+            </div>
+            <div className="mt-5 flex h-28 items-end gap-2.5">
+              {BARS.map((h, i) => <div key={i} className="flex-1 rounded-t-lg" style={{ height: `${h + 28}%`, background: i === BARS.length - 1 ? "#00B37A" : "#DDF3EA" }} />)}
+            </div>
+            <div className="mt-5 flex items-center gap-2 border-t border-[#E3ECE8] pt-4">
+              {["instagram", "facebook", "tiktok", "linkedin", "youtube", "x"].map((p) => <PlatformBadge key={p} id={p} size={28} />)}
+              <span className="ml-1 text-xs font-medium text-[#5B6B75]">+6 more</span>
+            </div>
           </div>
         </div>
       </div>

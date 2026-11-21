@@ -1,21 +1,23 @@
 import type { Config } from "tailwindcss";
 
-/** "Broadcast control room": ink-green console, sage canvas, teal working colour, signal yellow for on-air. */
+/** Swipe brand: green on mint, navy ink, Bricolage Grotesque + Inter. */
 export default {
   content: ["./src/**/*.{ts,tsx}"],
   darkMode: "media",
   theme: {
     extend: {
       colors: {
-        ink: { 950: "#08130F", 900: "#0E1F1B", 800: "#152B26", 700: "#1E3832", 600: "#2B4A43", 400: "#7F9891", 300: "#A9BCB6", 100: "#E4ECE9" },
-        brand: { 50: "#E7F4F1", 400: "#2A9C8B", 500: "#127A6B", 600: "#0E6357" },
-        signal: { 300: "#FFE08A", 400: "#FFD35C", 500: "#FFC93C", 600: "#E8AE12" },
+        brand: { 50: "#E6F7F0", 100: "#C9EEDF", 400: "#1FC48D", 500: "#00875A", 600: "#00714B", 700: "#005C3D" },
+        swipe: { DEFAULT: "#00B37A", deep: "#00875A" },
+        navy: { DEFAULT: "#0F1724", 700: "#1E2836", 500: "#5B6B75" },
+        mint: { DEFAULT: "#F4F8F7", line: "#D8E6E1" },
       },
       fontFamily: {
-        sans: ["Geist", "ui-sans-serif", "system-ui", "sans-serif"],
-        display: ["'Bricolage Grotesque'", "Geist", "ui-sans-serif", "system-ui", "sans-serif"],
+        sans: ["Inter", "ui-sans-serif", "system-ui", "sans-serif"],
+        display: ["'Bricolage Grotesque'", "Inter", "ui-sans-serif", "system-ui", "sans-serif"],
       },
-      borderRadius: { xl: "14px", "2xl": "18px" },
+      borderRadius: { xl: "14px", "2xl": "20px" },
+      boxShadow: { card: "0 1px 2px rgba(15,23,36,.04), 0 8px 24px -12px rgba(15,23,36,.08)", btn: "0 8px 16px -6px rgba(0,179,122,.35)" },
     },
   },
   plugins: [],

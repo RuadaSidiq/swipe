@@ -35,9 +35,9 @@ export function AccountsClient({ accounts, brands, platforms, demoMode, canConne
               const p = platforms.find((x) => x.id === a.platform)!;
               return (
                 <li key={a.id} className="line flex flex-wrap items-center gap-3 border-t px-4 py-3 first:border-t-0">
-                  <Avatar src={a.avatarUrl} name={a.displayName} size={40} platform={a.platform} />
+                  {a.avatarUrl ? <Avatar src={a.avatarUrl} name={a.displayName} size={40} platform={a.platform} /> : <PlatformBadge id={a.platform} size={40} />}
                   <div className="min-w-0 flex-1">
-                    <div className="flex flex-wrap items-center gap-2 font-medium">{a.displayName}{a.isDefault && <Star size={13} className="fill-[var(--signal)] text-[var(--signal)]" aria-label="Default" />}</div>
+                    <div className="flex flex-wrap items-center gap-2 font-medium">{a.displayName}{a.isDefault && <Star size={13} className="fill-[var(--accent-bright)] text-[var(--accent-bright)]" aria-label="Default" />}</div>
                     <div className="muted text-xs" title={a.lastSyncedAt ? `Synced ${new Date(a.lastSyncedAt).toLocaleString()}` : undefined}>{p.name}{a.username ? ` @${a.username.replace(/^@/, "")}` : ""}</div>
                     {a.statusMessage && a.status !== "CONNECTED" && <div className="mt-1 text-xs text-red-600 dark:text-red-400">{a.statusMessage}</div>}
                     {a.scopes.length > 0 && !a.isDemo && <details className="mt-1 text-xs"><summary className="muted cursor-pointer">{a.scopes.length} permissions</summary><div className="muted mt-1 break-words">{a.scopes.join(", ")}</div></details>}
@@ -53,7 +53,7 @@ export function AccountsClient({ accounts, brands, platforms, demoMode, canConne
                     {canManage && <button className="btn-ghost p-2" title={a.isDefault ? "Unset default" : "Set as default publishing account"} disabled={pending} onClick={() => run(() => updateAccount(a.id, { isDefault: !a.isDefault }), () => "Updated")}><Star size={15} /></button>}
                     {canManage && !a.isDemo && p.caps.analytics.status !== "unavailable" && <button className="btn-ghost p-2" title="Sync now" disabled={pending} onClick={() => run(() => syncAccount(a.id), (n) => `Synced ${n} metrics`)}><RefreshCw size={15} /></button>}
                     {canConnect && a.status !== "CONNECTED" && !a.isDemo && (p.connect === "oauth" ? <a className="btn-primary py-1.5" href={`/api/oauth/${a.platform}/start`}>Reconnect</a> : <button className="btn-primary py-1.5" onClick={() => setModal(p)}>Reconnect</button>)}
-                    {canManage && <button className="btn-ghost p-2 text-red-600 dark:text-red-400" title="Disconnect & revoke" disabled={pending} onClick={() => confirm(`Disconnect ${a.displayName}? Scheduled posts to it will be marked failed.`) && run(() => disconnectAccount(a.id), (r) => `Disconnected: ${r}`)}><Unplug size={15} /></button>}
+                    {canManage && <button className="btn-ghost p-2 hover:!text-red-600" title="Disconnect & revoke" aria-label="Disconnect" disabled={pending} onClick={() => confirm(`Disconnect ${a.displayName}? Scheduled posts to it will be marked failed.`) && run(() => disconnectAccount(a.id), (r) => `Disconnected: ${r}`)}><Unplug size={15} /></button>}
                   </div>
                 </li>
               );

@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { addDays, addMonths, addWeeks, eachDayOfInterval, endOfMonth, endOfWeek, isSameMonth, startOfMonth, startOfWeek } from "date-fns";
 import { formatInTimeZone, fromZonedTime, toZonedTime } from "date-fns-tz";
-import { ChevronLeft, ChevronRight, Plus } from "lucide-react";
+import { ChevronLeft, ChevronRight, Plus, SlidersHorizontal } from "lucide-react";
 import { Card, Empty, Notice, PlatformBadge, StatusBadge, cx } from "@/components/ui";
 import { rescheduleAction } from "../_actions/posts";
 
@@ -21,6 +21,8 @@ export function CalendarView({ items, accounts, campaigns, slots, tz, initialVie
   const [anchor, setAnchor] = useState(toZonedTime(new Date(anchorIso), tz));
   const [fPlatform, setFP] = useState(""); const [fAccount, setFA] = useState(""); const [fCampaign, setFC] = useState(""); const [fStatus, setFS] = useState("");
   const [err, setErr] = useState(""); const [pending, start] = useTransition();
+  const [showFilters, setShowFilters] = useState(false);
+  const activeFilters = [fPlatform, fAccount, fCampaign, fStatus].filter(Boolean).length;
   const [local, setLocal] = useState(items);
 
   const filtered = useMemo(() => local.filter((i) => (!fPlatform || i.targets.some((t) => t.platform === fPlatform)) && (!fAccount || i.targets.some((t) => t.accountId === fAccount))
@@ -57,15 +59,22 @@ export function CalendarView({ items, accounts, campaigns, slots, tz, initialVie
   return (
     <div className="space-y-3">
       <div className="flex flex-wrap items-center gap-2">
-        <div className="flex gap-1">{(["month", "week", "day", "list", "campaign"] as View[]).map((v) => <button key={v} onClick={() => setView(v)} className={cx("btn py-1.5 capitalize", view === v ? "soft font-medium" : "muted")}>{v}</button>)}</div>
+        <div className="panel flex gap-1 p-1">{(["month", "week", "list"] as View[]).map((v) => <button key={v} onClick={() => setView(v)} className="tab-link capitalize" data-active={view === v}>{v}</button>)}
+          <select className="input w-[84px] border-0 py-1 text-sm shadow-none" value={["day", "campaign"].includes(view) ? view : ""} onChange={(e) => e.target.value && setView(e.target.value as View)} aria-label="More views"><option value="">More</option><option value="day">Day</option><option value="campaign">Campaigns</option></select></div>
         <div className="flex items-center gap-1"><button className="btn-ghost p-1.5" onClick={() => nav(-1)} aria-label="Previous"><ChevronLeft size={16} /></button><button className="btn-secondary py-1" onClick={() => setAnchor(toZonedTime(new Date(), tz))}>Today</button><button className="btn-ghost p-1.5" onClick={() => nav(1)} aria-label="Next"><ChevronRight size={16} /></button></div>
         <div className="font-display text-[17px] font-semibold">{label} <span className="muted ml-1 font-sans text-xs font-normal">{tz}</span></div>
         <div className="flex-1" />
-        <select className="input w-auto max-w-[11rem] py-1.5" value={fPlatform} onChange={(e) => setFP(e.target.value)}><option value="">All networks</option>{[...new Set(accounts.map((a) => a.platform))].map((p) => <option key={p} value={p}>{p}</option>)}</select>
-        <select className="input w-auto max-w-[11rem] py-1.5" value={fAccount} onChange={(e) => setFA(e.target.value)}><option value="">All accounts</option>{accounts.map((a) => <option key={a.id} value={a.id}>{a.displayName}</option>)}</select>
-        <select className="input w-auto max-w-[11rem] py-1.5" value={fCampaign} onChange={(e) => setFC(e.target.value)}><option value="">All campaigns</option>{campaigns.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}</select>
-        <select className="input w-auto max-w-[11rem] py-1.5" value={fStatus} onChange={(e) => setFS(e.target.value)}><option value="">All statuses</option><option value="DRAFT">Drafts</option><option value="PENDING_APPROVAL">Awaiting approval</option><option value="SCHEDULED">Scheduled</option><option value="PUBLISHED">Published</option><option value="FAILED">Failed</option></select>
+        <button className={cx("btn-secondary py-2", activeFilters > 0 && "border-[var(--accent-bright)] text-[var(--accent)]")} onClick={() => setShowFilters(!showFilters)} aria-expanded={showFilters}><SlidersHorizontal size={15} /> Filters{activeFilters ? ` (${activeFilters})` : ""}</button>
       </div>
+      {showFilters && (
+        <div className="flex flex-wrap gap-2">
+        <select className="input w-auto py-2" value={fPlatform} onChange={(e) => setFP(e.target.value)}><option value="">All networks</option>{[...new Set(accounts.map((a) => a.platform))].map((p) => <option key={p} value={p}>{p}</option>)}</select>
+        <select className="input w-auto py-2" value={fAccount} onChange={(e) => setFA(e.target.value)}><option value="">All accounts</option>{accounts.map((a) => <option key={a.id} value={a.id}>{a.displayName}</option>)}</select>
+        <select className="input w-auto py-2" value={fCampaign} onChange={(e) => setFC(e.target.value)}><option value="">All campaigns</option>{campaigns.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}</select>
+        <select className="input w-auto py-2" value={fStatus} onChange={(e) => setFS(e.target.value)}><option value="">All statuses</option><option value="DRAFT">Drafts</option><option value="PENDING_APPROVAL">Awaiting approval</option><option value="SCHEDULED">Scheduled</option><option value="PUBLISHED">Published</option><option value="FAILED">Failed</option></select>
+          {activeFilters > 0 && <button className="btn-ghost" onClick={() => { setFP(""); setFA(""); setFC(""); setFS(""); }}>Clear</button>}
+        </div>
+      )}
       {err && <Notice tone="error">{err}</Notice>}
       {pending && <div className="muted text-xs">Saving…</div>}
 

@@ -2,25 +2,22 @@
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useRef, useState, useTransition } from "react";
-import { LayoutDashboard, Link2, PenSquare, CalendarDays, Inbox, Sparkles, BarChart3, Image as ImageIcon, Flag, Users, Workflow, UserCog, Settings, CreditCard, Bell, Search, Menu, ShieldCheck, ListChecks, LogOut, ChevronsUpDown, Plus, Check } from "lucide-react";
-import { cx } from "./ui";
+import { Home, Inbox, CalendarDays, BarChart3, Sparkles, Settings, Bell, Search, Plus, ChevronsUpDown, Check, LogOut, ShieldCheck, MoreHorizontal, X } from "lucide-react";
+import { cx, SwipeLogo } from "./ui";
 import { switchWorkspace } from "@/app/(app)/_actions/common";
 import { logout } from "@/app/(auth)/actions";
 
-type BadgeKey = "inbox" | "approvals" | "accounts";
-interface NavItem { href: string; label: string; icon: React.ComponentType<{ size?: number }>; badge?: BadgeKey }
-const NAV: { group: string; items: NavItem[] }[] = [
-  { group: "", items: [{ href: "/dashboard", label: "Dashboard", icon: LayoutDashboard }, { href: "/inbox", label: "Inbox", icon: Inbox, badge: "inbox" }] },
-  { group: "Plan", items: [
-    { href: "/publisher", label: "Compose", icon: PenSquare }, { href: "/calendar", label: "Calendar", icon: CalendarDays },
-    { href: "/posts", label: "Posts", icon: ListChecks, badge: "approvals" }, { href: "/campaigns", label: "Campaigns", icon: Flag }, { href: "/media", label: "Media", icon: ImageIcon }] },
-  { group: "Grow", items: [
-    { href: "/analytics", label: "Analytics", icon: BarChart3 }, { href: "/assistant", label: "AI assistant", icon: Sparkles },
-    { href: "/contacts", label: "Contacts", icon: Users }, { href: "/automations", label: "Automations", icon: Workflow }] },
-  { group: "Workspace", items: [
-    { href: "/accounts", label: "Accounts", icon: Link2, badge: "accounts" }, { href: "/team", label: "Team", icon: UserCog },
-    { href: "/settings", label: "Settings", icon: Settings }, { href: "/billing", label: "Billing", icon: CreditCard }] },
+interface Section { key: string; label: string; href: string; icon: React.ComponentType<{ size?: number; strokeWidth?: number }>; match: string[]; tabs?: [string, string][] }
+export const SECTIONS: Section[] = [
+  { key: "home", label: "Home", href: "/dashboard", icon: Home, match: ["/dashboard"] },
+  { key: "inbox", label: "Inbox", href: "/inbox", icon: Inbox, match: ["/inbox", "/contacts"], tabs: [["/inbox", "Conversations"], ["/contacts", "Contacts"]] },
+  { key: "content", label: "Content", href: "/calendar", icon: CalendarDays, match: ["/calendar", "/posts", "/campaigns", "/media", "/publisher"], tabs: [["/calendar", "Calendar"], ["/posts", "Posts"], ["/campaigns", "Campaigns"], ["/media", "Media"]] },
+  { key: "analytics", label: "Analytics", href: "/analytics", icon: BarChart3, match: ["/analytics"] },
+  { key: "assistant", label: "AI assistant", href: "/assistant", icon: Sparkles, match: ["/assistant"] },
+  { key: "settings", label: "Settings", href: "/accounts", icon: Settings, match: ["/accounts", "/team", "/automations", "/settings", "/billing", "/notifications", "/admin", "/search"],
+    tabs: [["/accounts", "Accounts"], ["/team", "Team"], ["/automations", "Automations"], ["/settings", "Workspace"], ["/billing", "Billing"]] },
 ];
+const inSection = (s: Section, path: string) => s.match.some((m) => path === m || path.startsWith(m + "/"));
 
 interface Props {
   user: { name: string; email: string; isPlatformAdmin: boolean };
@@ -35,101 +32,134 @@ interface Props {
 export function Shell({ user, workspace, workspaces, counts, demo, banners, children }: Props) {
   const path = usePathname();
   const router = useRouter();
-  const [open, setOpen] = useState(false);
   const [wsOpen, setWsOpen] = useState(false);
+  const [menu, setMenu] = useState(false);
+  const [more, setMore] = useState(false);
   const [pending, start] = useTransition();
   const [q, setQ] = useState("");
   const searchRef = useRef<HTMLInputElement>(null);
+  const section = SECTIONS.find((s) => inSection(s, path));
+  const showTabs = section?.tabs && path !== "/publisher" && section.tabs.some(([h]) => path === h || path.startsWith(h + "/"));
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => { if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "k") { e.preventDefault(); searchRef.current?.focus(); } };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
   }, []);
-  useEffect(() => { setOpen(false); setWsOpen(false); }, [path]);
+  useEffect(() => { setWsOpen(false); setMenu(false); setMore(false); }, [path]);
 
-  const sidebar = (
-    <nav className="flex h-full flex-col overflow-y-auto px-3 pb-3 pt-4" style={{ background: "var(--console)", color: "var(--console-text)" }} aria-label="Main">
-      <div className="mb-5 flex items-center gap-2 px-2.5">
-        <span className="relative grid h-7 w-7 place-items-center rounded-full" style={{ background: "var(--signal)" }} aria-hidden>
-          <span className="h-2.5 w-2.5 rounded-full" style={{ background: "var(--console)" }} />
-        </span>
-        <span className="font-display text-[19px] font-semibold tracking-tight text-white">Orbit</span>
-      </div>
-
-      <div className="relative mb-4">
-        <button onClick={() => setWsOpen(!wsOpen)} aria-expanded={wsOpen} className="flex w-full items-center gap-2.5 rounded-lg px-2.5 py-2 text-left transition hover:bg-[var(--console-hover)]">
-          <span className="grid h-7 w-7 shrink-0 place-items-center rounded-md text-xs font-bold text-[var(--console)]" style={{ background: "#CFE7E1" }}>{workspace.name[0]?.toUpperCase()}</span>
-          <span className="min-w-0 flex-1"><span className="block truncate text-[13.5px] font-medium text-white">{workspace.name}</span></span>
-          <ChevronsUpDown size={14} style={{ color: "var(--console-muted)" }} />
-        </button>
-        {wsOpen && (
-          <div className="absolute left-0 right-0 top-full z-30 mt-1 rounded-xl p-1 shadow-2xl" style={{ background: "#16302A", border: "1px solid #24423B" }}>
-            {workspaces.map((w) => (
-              <button key={w.id} disabled={pending} onClick={() => start(() => switchWorkspace(w.id))} className="nav-link w-full">
-                <span className="flex-1 truncate text-left">{w.name}</span>{w.id === workspace.id && <Check size={14} />}
-              </button>
-            ))}
-            <Link href="/settings#workspaces" className="nav-link"><Plus size={14} /> New workspace</Link>
-          </div>
-        )}
-      </div>
-
-      <div className="flex flex-col gap-4">
-        {NAV.map((g, i) => (
-          <div key={i} className="flex flex-col gap-0.5">
-            {g.group && <div className="px-2.5 pb-1 text-[12px] font-medium" style={{ color: "var(--console-muted)" }}>{g.group}</div>}
-            {g.items.map((n) => {
-              const active = path === n.href || path.startsWith(n.href + "/");
-              const count = n.badge ? counts[n.badge] : 0;
-              return (
-                <Link key={n.href} href={n.href} className="nav-link" data-active={active} aria-current={active ? "page" : undefined}>
-                  <n.icon size={16} /> <span className="flex-1">{n.label}</span>
-                  {count > 0 && <span className={cx("min-w-[20px] rounded-full px-1.5 text-center text-[11px] font-semibold leading-5", n.badge === "accounts" ? "bg-red-500 text-white" : "text-[var(--console)]")} style={n.badge === "accounts" ? undefined : { background: "var(--signal)" }}>{count}</span>}
-                </Link>
-              );
-            })}
-          </div>
-        ))}
-        {user.isPlatformAdmin && <Link href="/admin" className="nav-link" data-active={path.startsWith("/admin")}><ShieldCheck size={16} /> Admin</Link>}
-      </div>
-
-      <div className="mt-auto flex items-center gap-2.5 rounded-lg px-2.5 pt-6">
-        <span className="grid h-8 w-8 shrink-0 place-items-center rounded-full text-xs font-semibold text-white" style={{ background: "#24423B" }}>{user.name.split(" ").map((s) => s[0]).join("").slice(0, 2)}</span>
-        <div className="min-w-0 flex-1"><div className="truncate text-[13px] font-medium text-white">{user.name}</div><div className="truncate text-[11.5px]" style={{ color: "var(--console-muted)" }}>{user.email}</div></div>
-        <form action={logout}><button className="rounded-md p-1.5 transition hover:bg-[var(--console-hover)]" title="Sign out" aria-label="Sign out"><LogOut size={15} /></button></form>
-      </div>
-    </nav>
-  );
+  const initials = user.name.split(" ").map((s) => s[0]).join("").slice(0, 2).toUpperCase();
 
   return (
     <div className="flex min-h-screen">
-      <aside className="no-print sticky top-0 hidden h-screen w-[244px] shrink-0 lg:block">{sidebar}</aside>
-      {open && (
-        <div className="fixed inset-0 z-40 lg:hidden" role="dialog" aria-modal="true">
-          <div className="absolute inset-0 bg-black/50" onClick={() => setOpen(false)} />
-          <aside className="absolute inset-y-0 left-0 w-[264px] shadow-2xl">{sidebar}</aside>
+      {/* Desktop sidebar */}
+      <aside className="no-print sticky top-0 hidden h-screen w-[248px] shrink-0 flex-col px-4 pb-4 pt-6 lg:flex" style={{ background: "var(--panel)", boxShadow: "1px 0 0 var(--line)" }} aria-label="Main">
+        <Link href="/dashboard" className="mb-6 flex items-center gap-2.5 px-2">
+          <SwipeLogo size={32} />
+          <span className="leading-tight"><span className="block font-display text-[17px] font-semibold">Orbit</span><span className="muted block text-[11px]">by Swipe</span></span>
+        </Link>
+
+        <div className="relative mb-4">
+          <button onClick={() => setWsOpen(!wsOpen)} aria-expanded={wsOpen} className="flex w-full items-center gap-2.5 rounded-xl border px-3 py-2 text-left transition hover:bg-[var(--soft)]" style={{ borderColor: "var(--line-strong)" }}>
+            <span className="grid h-6 w-6 shrink-0 place-items-center rounded-md text-[11px] font-bold" style={{ background: "var(--accent-soft)", color: "var(--accent)" }}>{workspace.name[0]?.toUpperCase()}</span>
+            <span className="min-w-0 flex-1 truncate text-[13px] font-medium">{workspace.name}</span>
+            <ChevronsUpDown size={14} className="muted" />
+          </button>
+          {wsOpen && (
+            <div className="panel absolute left-0 right-0 top-full z-30 mt-1.5 p-1.5">
+              {workspaces.map((w) => (
+                <button key={w.id} disabled={pending} onClick={() => start(() => switchWorkspace(w.id))} className="tab-link w-full justify-between">
+                  <span className="truncate">{w.name}</span>{w.id === workspace.id && <Check size={14} />}
+                </button>
+              ))}
+              <Link href="/settings#workspaces" className="tab-link"><Plus size={14} /> New workspace</Link>
+            </div>
+          )}
         </div>
-      )}
-      <div className="flex min-w-0 flex-1 flex-col">
-        <header className="no-print sticky top-0 z-20 flex items-center gap-2 px-4 py-3 md:px-8" style={{ background: "color-mix(in srgb, var(--bg) 88%, transparent)", backdropFilter: "blur(10px)" }}>
-          <button className="btn-ghost p-2 lg:hidden" onClick={() => setOpen(true)} aria-label="Open menu"><Menu size={18} /></button>
-          <form className="relative w-full max-w-sm" onSubmit={(e) => { e.preventDefault(); if (q.trim()) router.push(`/search?q=${encodeURIComponent(q.trim())}`); }}>
-            <Search size={15} className="muted pointer-events-none absolute left-3 top-1/2 -translate-y-1/2" />
-            <input ref={searchRef} className="input rounded-full border-transparent pl-9 pr-12" style={{ background: "var(--panel)" }} value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search" aria-label="Search everything" />
-            <kbd className="muted pointer-events-none absolute right-3 top-1/2 hidden -translate-y-1/2 text-[11px] sm:block">⌘K</kbd>
+
+        <Link href="/publisher" className="btn-primary mb-5 w-full"><Plus size={17} /> Create post</Link>
+
+        <nav className="flex flex-col gap-1">
+          {SECTIONS.map((s) => {
+            const active = section?.key === s.key;
+            return (
+              <Link key={s.key} href={s.href} className="nav-link" data-active={active} aria-current={active ? "page" : undefined}>
+                <s.icon size={18} strokeWidth={active ? 2.2 : 1.8} /><span className="flex-1">{s.label}</span>
+                {s.key === "inbox" && counts.inbox > 0 && <span className={cx("min-w-[22px] rounded-full px-1.5 text-center text-[11px] font-semibold leading-[22px]", active ? "bg-white/25 text-white" : "text-white")} style={active ? undefined : { background: "var(--accent-bright)" }}>{counts.inbox}</span>}
+              </Link>
+            );
+          })}
+        </nav>
+
+        <div className="relative mt-auto">
+          {menu && (
+            <div className="panel absolute bottom-full left-0 right-0 z-30 mb-2 p-1.5">
+              <Link href="/settings" className="tab-link">Profile & security</Link>
+              {user.isPlatformAdmin && <Link href="/admin" className="tab-link"><ShieldCheck size={14} /> Admin console</Link>}
+              <form action={logout}><button className="tab-link w-full"><LogOut size={14} /> Sign out</button></form>
+            </div>
+          )}
+          <button onClick={() => setMenu(!menu)} aria-expanded={menu} className="flex w-full items-center gap-3 rounded-xl px-2 py-2 text-left transition hover:bg-[var(--soft)]">
+            <span className="grid h-9 w-9 shrink-0 place-items-center rounded-full text-xs font-semibold text-white" style={{ background: "var(--text)" }}>{initials}</span>
+            <span className="min-w-0 flex-1"><span className="block truncate text-[13px] font-medium">{user.name}</span><span className="muted block truncate text-[11.5px]">{user.email}</span></span>
+            <MoreHorizontal size={16} className="muted" />
+          </button>
+        </div>
+      </aside>
+
+      <div className="flex min-w-0 flex-1 flex-col pb-20 lg:pb-0">
+        <header className="no-print sticky top-0 z-20 flex items-center gap-3 px-4 py-3 md:px-8 md:py-4" style={{ background: "color-mix(in srgb, var(--bg) 90%, transparent)", backdropFilter: "blur(12px)" }}>
+          <Link href="/dashboard" className="lg:hidden"><SwipeLogo size={30} /></Link>
+          <form className="relative w-full max-w-md" onSubmit={(e) => { e.preventDefault(); if (q.trim()) router.push(`/search?q=${encodeURIComponent(q.trim())}`); }}>
+            <Search size={16} className="muted pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2" />
+            <input ref={searchRef} className="input rounded-full border-transparent pl-10" style={{ background: "var(--panel)", boxShadow: "0 0 0 1px var(--line)" }} value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search" aria-label="Search posts, conversations and contacts" />
           </form>
           <div className="flex-1" />
-          {demo && <span className="hidden items-center gap-1.5 rounded-full border border-dashed px-2.5 py-1 text-xs md:inline-flex" style={{ borderColor: "var(--line-strong)", color: "var(--muted)" }} title="Demo accounts simulate publishing and replies. Nothing is sent to real networks.">Demo data</span>}
-          <Link href="/notifications" className="btn-ghost relative p-2" aria-label={`Notifications${counts.notifications ? ` (${counts.notifications} unread)` : ""}`}>
-            <Bell size={18} />
-            {counts.notifications > 0 && <span className="absolute right-1.5 top-1.5 h-2 w-2 rounded-full bg-red-500 ring-2 ring-[var(--bg)]" />}
+          {demo && <span className="chip soft muted hidden md:inline-flex" title="Demo accounts simulate publishing. Nothing reaches real networks.">Demo</span>}
+          <Link href="/notifications" className="relative grid h-10 w-10 place-items-center rounded-full transition hover:bg-[var(--panel)]" aria-label={`Notifications${counts.notifications ? `, ${counts.notifications} unread` : ""}`}>
+            <Bell size={19} />
+            {counts.notifications > 0 && <span className="absolute right-2 top-2 h-2.5 w-2.5 rounded-full ring-2 ring-[var(--bg)]" style={{ background: "#E5484D" }} />}
           </Link>
-          <Link href="/publisher" className="btn-signal rounded-full px-4"><Plus size={16} /> <span className="hidden sm:inline">Create post</span></Link>
         </header>
         {banners}
-        <main className="mx-auto w-full max-w-[1320px] flex-1 px-4 pb-10 pt-4 md:px-8">{children}</main>
+        <main className="mx-auto w-full max-w-[1240px] flex-1 px-4 pb-12 md:px-8">
+          {showTabs && (
+            <nav className="no-print mb-6 flex gap-1 overflow-x-auto" aria-label={`${section!.label} sections`}>
+              {section!.tabs!.map(([href, label]) => { const a = path === href || path.startsWith(href + "/"); return <Link key={href} href={href} className="tab-link whitespace-nowrap" data-active={a} aria-current={a ? "page" : undefined}>{label}</Link>; })}
+            </nav>
+          )}
+          {children}
+        </main>
       </div>
+
+      {/* Mobile bottom navigation */}
+      <nav className="no-print fixed inset-x-0 bottom-0 z-30 grid grid-cols-5 items-end px-2 pt-1.5 lg:hidden" style={{ background: "var(--panel)", boxShadow: "0 -1px 0 var(--line)", paddingBottom: "max(8px, env(safe-area-inset-bottom))" }} aria-label="Main">
+        {[SECTIONS[0], SECTIONS[1]].map((s) => <MobileTab key={s.key} s={s} active={section?.key === s.key} badge={s.key === "inbox" ? counts.inbox : 0} />)}
+        <Link href="/publisher" className="mx-auto -mt-5 grid h-14 w-14 place-items-center rounded-full text-white shadow-btn" style={{ background: "var(--accent)" }} aria-label="Create post"><Plus size={26} /></Link>
+        <MobileTab s={SECTIONS[2]} active={section?.key === "content"} />
+        <button onClick={() => setMore(true)} className={cx("flex flex-col items-center gap-0.5 py-1.5 text-[11px] font-medium", ["analytics", "assistant", "settings"].includes(section?.key ?? "") ? "text-[var(--accent)]" : "muted")}><MoreHorizontal size={21} />More</button>
+      </nav>
+      {more && (
+        <div className="fixed inset-0 z-40 lg:hidden" role="dialog" aria-modal="true">
+          <div className="absolute inset-0 bg-black/40" onClick={() => setMore(false)} />
+          <div className="absolute inset-x-0 bottom-0 rounded-t-3xl p-4" style={{ background: "var(--panel)", paddingBottom: "max(16px, env(safe-area-inset-bottom))" }}>
+            <div className="mb-3 flex items-center justify-between px-2"><span className="font-display text-lg font-semibold">{workspace.name}</span><button onClick={() => setMore(false)} className="btn-ghost p-2" aria-label="Close"><X size={18} /></button></div>
+            {SECTIONS.slice(3).map((s) => <Link key={s.key} href={s.href} className="nav-link" data-active={section?.key === s.key}><s.icon size={18} />{s.label}</Link>)}
+            {workspaces.length > 1 && workspaces.filter((w) => w.id !== workspace.id).map((w) => <button key={w.id} onClick={() => start(() => switchWorkspace(w.id))} className="nav-link w-full">Switch to {w.name}</button>)}
+            {user.isPlatformAdmin && <Link href="/admin" className="nav-link"><ShieldCheck size={18} /> Admin console</Link>}
+            <form action={logout}><button className="nav-link w-full"><LogOut size={18} /> Sign out</button></form>
+          </div>
+        </div>
+      )}
     </div>
+  );
+}
+
+function MobileTab({ s, active, badge = 0 }: { s: Section; active: boolean; badge?: number }) {
+  return (
+    <Link href={s.href} className={cx("relative flex flex-col items-center gap-0.5 py-1.5 text-[11px] font-medium", active ? "text-[var(--accent)]" : "muted")} aria-current={active ? "page" : undefined}>
+      <s.icon size={21} strokeWidth={active ? 2.2 : 1.8} />{s.label}
+      {badge > 0 && <span className="absolute right-[22%] top-0.5 min-w-[18px] rounded-full px-1 text-center text-[10px] font-semibold leading-[18px] text-white" style={{ background: "var(--accent-bright)" }}>{badge}</span>}
+    </Link>
   );
 }
