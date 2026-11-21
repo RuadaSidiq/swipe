@@ -22,7 +22,7 @@ export function TeamClient({ members, invites, canManage, isOwner, labels }: { m
         {members.map((m) => <tr key={m.id}><td><div className="font-medium">{m.name}{m.me && " (you)"}</div><div className="muted text-xs">{m.email}</div></td>
           <td>{canManage && !m.me ? <select className="input w-52 py-1.5" value={m.role} disabled={pending} onChange={(e) => run(() => changeRole(m.id, e.target.value))}>{Object.keys(labels).filter((r) => isOwner || !["OWNER", "ADMIN"].includes(r) || r === m.role).map((r) => <option key={r} value={r}>{labels[r]}</option>)}</select> : labels[m.role]}</td>
           <td className="muted text-xs">{m.lastActive ? new Date(m.lastActive).toLocaleDateString() : "Never"}</td>
-          <td className="text-right">{canManage && !m.me && m.role !== "OWNER" && <button className="btn-ghost py-1 text-xs text-red-500" onClick={() => confirm(`Remove ${m.name}?`) && run(() => removeMember(m.id))}>Remove</button>}</td></tr>)}
+          <td className="text-right">{canManage && !m.me && m.role !== "OWNER" && <button className="btn-ghost py-1 text-xs text-red-600 dark:text-red-400" onClick={() => confirm(`Remove ${m.name}?`) && run(() => removeMember(m.id))}>Remove</button>}</td></tr>)}
       </tbody></table></Card>
       {invites.length > 0 && <Card title="Pending invitations" pad={false}><ul>{invites.map((i) => <li key={i.id} className="line flex items-center gap-3 border-t px-4 py-2.5 text-sm first:border-t-0"><span className="flex-1">{i.email} · {labels[i.role]}</span><span className="muted text-xs">expires {new Date(i.expiresAt).toLocaleDateString()}</span>{canManage && <button className="btn-ghost py-1 text-xs" onClick={() => run(() => revokeInvite(i.id))}>Revoke</button>}</li>)}</ul></Card>}
     </div>

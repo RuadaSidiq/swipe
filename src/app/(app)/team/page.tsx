@@ -15,7 +15,7 @@ export default async function Team() {
   ]);
   const roles = Object.keys(ROLE_LABELS) as Role[];
   return (<>
-    <PageHeader title="Team" subtitle="Invite people and control what each role can do in this workspace." />
+    <PageHeader title="Team" />
     <TeamClient members={members.map((m) => ({ id: m.id, role: m.role, name: m.user.name, email: m.user.email, lastActive: m.user.lastActiveAt?.toISOString() ?? null, me: m.userId === ctx.user.id }))}
       invites={invites.map((i) => ({ id: i.id, email: i.email, role: i.role, expiresAt: i.expiresAt.toISOString() }))} canManage={ctx.can("team.manage")} isOwner={ctx.role === "OWNER"} labels={ROLE_LABELS} />
     <div className="mt-4 grid gap-4 xl:grid-cols-2">

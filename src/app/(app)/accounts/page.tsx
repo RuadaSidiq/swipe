@@ -21,7 +21,7 @@ export default async function AccountsPage({ searchParams }: { searchParams: Pro
   const platforms = PLATFORM_LIST.map((p) => ({ ...p, configured: isPlatformConfigured(p.id) }));
   return (
     <>
-      <PageHeader title="Connected accounts" subtitle={<>Connect through each network&apos;s official sign-in — Orbit never sees your passwords. Using {u.accounts} of {isUnlimited(plan.limits.accounts) ? "unlimited" : plan.limits.accounts} accounts on {plan.name}.</>} />
+      <PageHeader title="Accounts" subtitle={`${u.accounts} of ${isUnlimited(plan.limits.accounts) ? "unlimited" : plan.limits.accounts} on ${plan.name}`} />
       <div className="mb-4 space-y-2">
         {sp.connected && <Notice tone="success">Connected {sp.connected} account{sp.connected === "1" ? "" : "s"}.</Notice>}
         {sp.error && <Notice tone="error">{sp.error}</Notice>}

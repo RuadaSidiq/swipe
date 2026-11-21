@@ -43,7 +43,7 @@ export default async function CampaignPage({ params }: { params: Promise<{ id: s
         {(c.description || c.goals) && <Card title="Brief"><p className="whitespace-pre-wrap text-sm">{c.description}</p>{c.goals && <><div className="label mt-3">Goals</div><p className="text-sm">{c.goals}</p></>}</Card>}
         <Card title="Accounts">{c.accounts.length ? <ul className="space-y-1.5">{c.accounts.map((x) => <li key={x.accountId} className="flex items-center gap-2 text-sm"><PlatformBadge id={x.account.platform} size={16} />{x.account.displayName}</li>)}</ul> : <span className="muted text-sm">None selected</span>}</Card>
         <Card title="Team">{team.length ? team.map((m) => <div key={m.id} className="text-sm">{m.user.name}</div>) : <span className="muted text-sm">No members assigned</span>}</Card>
-        <Card title="Assets">{c.assets.length ? <div className="grid grid-cols-3 gap-2">{c.assets.map((m) => <Link key={m.id} href={`/publisher?campaign=${c.id}&media=${m.id}`} className="aspect-square overflow-hidden rounded-lg"><Thumb a={m} /></Link>)}</div> : <Empty title="No assets" body="Upload from the media library and tag them to this campaign." />}</Card>
+        <Card title="Assets">{c.assets.length ? <div className="grid grid-cols-3 gap-2">{c.assets.map((m) => <Link key={m.id} href={`/publisher?campaign=${c.id}&media=${m.id}`} className="aspect-square overflow-hidden rounded-lg"><Thumb a={m} /></Link>)}</div> : <Empty title="No assets" />}</Card>
       </div>
     </div>
   </>);

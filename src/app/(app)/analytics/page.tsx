@@ -34,7 +34,7 @@ export default async function AnalyticsPage({ searchParams }: { searchParams: Pr
   const growth = withFollowers.reduce((n, s) => n + (s.change ?? 0), 0);
   return (
     <>
-      <PageHeader title="Analytics" subtitle={`${fmtDate(from, tz, "MMM d, yyyy")} – ${fmtDate(to, tz, "MMM d, yyyy")}. Every number shows its source; metrics a network doesn't provide are marked unavailable, never estimated.`}
+      <PageHeader title="Analytics" subtitle={`${fmtDate(from, tz, "MMM d")} – ${fmtDate(to, tz, "MMM d, yyyy")}`}
         actions={<>
           {plan.features.reports && <a className="btn-secondary" href={`/api/reports/analytics?${qs}`}>Export CSV</a>}
           {plan.features.reports && <Link className="btn-secondary" href={`/reports/analytics?${qs}`} target="_blank">PDF report</Link>}
@@ -48,29 +48,29 @@ export default async function AnalyticsPage({ searchParams }: { searchParams: Pr
         {brands.length > 1 && <select name="brand" defaultValue={sp.brand ?? ""} className="input w-40"><option value="">All brands</option>{brands.map((b) => <option key={b.id} value={b.id}>{b.name}</option>)}</select>}
         <button className="btn-secondary">Apply</button>
       </form>
-      {a.usesDemo && <div className="mb-4"><Notice tone="warn">Some figures come from demo accounts and are simulated sample data, labelled “demo”. They are not real network metrics.</Notice></div>}
-      <div className="mb-4 grid grid-cols-2 gap-3 md:grid-cols-3 xl:grid-cols-6">
-        <Stat label="Followers (latest)" value={withFollowers.length ? compact(totalFollowers) : "—"} hint={withFollowers.length ? `${withFollowers.length} accounts reporting` : "No follower data yet"} />
-        <Stat label="Follower change" value={withFollowers.length ? `${growth >= 0 ? "+" : ""}${compact(growth)}` : "—"} tone={growth > 0 ? "good" : growth < 0 ? "bad" : undefined} hint="Within selected period" />
-        <Stat label="Posts published" value={a.published} hint={`${a.withMetrics} with engagement data`} />
-        <Stat label="Engagements" value={a.withMetrics ? compact(["likes", "comments", "shares", "saves"].reduce((n, k) => n + (a.totals[k] ?? 0), 0)) : "—"} hint="Likes + comments + shares + saves" />
-        <Stat label="Views / impressions" value={a.totals.views || a.totals.impressions ? compact((a.totals.views ?? 0) + (a.totals.impressions ?? 0)) : "—"} hint={a.totals.views || a.totals.impressions ? "Where networks report them" : "Not reported by these networks"} />
-        <Stat label="Reach" value={a.totals.reach ? compact(a.totals.reach) : "—"} hint={a.totals.reach ? "Instagram media insights" : "Unavailable"} />
+      
+      <div className="panel mb-6 grid grid-cols-2 gap-x-6 gap-y-4 px-5 py-5 md:grid-cols-3 xl:grid-cols-6">
+        <Stat label="Followers" value={withFollowers.length ? compact(totalFollowers) : "—"} />
+        <Stat label="Change" value={withFollowers.length ? `${growth >= 0 ? "+" : ""}${compact(growth)}` : "—"} tone={growth > 0 ? "good" : growth < 0 ? "bad" : undefined} />
+        <Stat label="Posts" value={a.published} />
+        <Stat label="Engagements" value={a.withMetrics ? compact(["likes", "comments", "shares", "saves"].reduce((n, k) => n + (a.totals[k] ?? 0), 0)) : "—"} />
+        <Stat label="Views" value={a.totals.views || a.totals.impressions ? compact((a.totals.views ?? 0) + (a.totals.impressions ?? 0)) : "—"} />
+        <Stat label="Reach" value={a.totals.reach ? compact(a.totals.reach) : "—"} />
       </div>
       <div className="grid gap-4 xl:grid-cols-3">
         <Card title="Follower growth" className="xl:col-span-2">
-          {shown.length ? <LineChart series={shown.map((s) => ({ key: s.id, label: `${s.displayName} (${platformLabel(s.platform)})`, points: s.points }))} format="compact" /> : <Empty title="No follower history in this period" body="Orbit records follower counts every 6 hours for connected accounts whose network exposes them." />}
+          {shown.length ? <LineChart series={shown.map((s) => ({ key: s.id, label: `${s.displayName} (${platformLabel(s.platform)})`, points: s.points }))} format="compact" /> : <Empty title="No follower history in this period" body="Updated every 6 hours." />}
           {withFollowers.length > 8 && <p className="muted mt-2 text-xs">Showing the first 8 accounts; filter to see others.</p>}
         </Card>
         <Card title="Engagement by network">
           {a.byPlatform.length ? <BarList rows={a.byPlatform.sort((x, y) => y.engagement - x.engagement).map((p) => ({ key: p.platform, label: <><PlatformBadge id={p.platform} size={14} /> {platformLabel(p.platform)} <span className="muted">· {p.posts} posts</span></>, value: p.engagement, hint: `avg ${p.avg.toFixed(1)} per post` }))} format="compact" />
-            : <Empty title="No engagement data yet" body="Post metrics are collected from networks that expose them after publishing." />}
+            : <Empty title="No engagement data yet" />}
         </Card>
         <Card title="Accounts" className="xl:col-span-2" pad={false}>
           <div className="overflow-x-auto"><table className="table w-full"><thead><tr><th>Account</th><th>Followers</th><th>Change</th><th>Other</th><th>Source & as-of</th></tr></thead><tbody>
             {a.series.map((s) => (<tr key={s.id}><td><span className="flex items-center gap-2"><PlatformBadge id={s.platform} size={16} />{s.displayName}{s.isDemo && <DemoBadge />}</span></td>
               <td className="tabular-nums">{s.latest !== null ? s.latest.toLocaleString() : <span className="muted">unavailable</span>}</td>
-              <td className={s.change ? (s.change > 0 ? "text-emerald-600" : "text-red-500") : "muted"}>{s.change !== null ? `${s.change >= 0 ? "+" : ""}${s.change.toLocaleString()}` : "—"}</td>
+              <td className={s.change ? (s.change > 0 ? "text-emerald-700 dark:text-emerald-400" : "text-red-600 dark:text-red-400") : "muted"}>{s.change !== null ? `${s.change >= 0 ? "+" : ""}${s.change.toLocaleString()}` : "—"}</td>
               <td className="text-xs">{Object.entries(s.other).map(([k, v]) => <span key={k} className="mr-2" title={v.source}>{k}: <b>{compact(v.value)}</b></span>)}</td>
               <td className="muted text-xs">{s.source ? `${s.source} · ${fmtDate(s.lastAt, tz, "MMM d HH:mm")}` : "No data collected"}</td></tr>))}
             {!a.series.length && <tr><td colSpan={5} className="muted text-center">No accounts match.</td></tr>}

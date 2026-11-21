@@ -37,9 +37,9 @@ export function MediaLibrary({ initial, folders, canManage }: { initial: Asset[]
     <div className="grid gap-4 lg:grid-cols-[220px_1fr]">
       <div className="space-y-3">
         <Card pad={false}><div className="p-2">
-          <button className="nav-link w-full" data-active={!folder} onClick={() => setFolder(null)}><Folder size={15} /> All files <span className="muted ml-auto text-xs">{assets.length}</span></button>
-          {folders.map((f) => <button key={f.id} className="nav-link w-full" data-active={folder === f.id} onClick={() => setFolder(f.id)}><Folder size={15} /> <span className="truncate">{f.name}</span><span className="muted ml-auto text-xs">{assets.filter((a) => a.folderId === f.id).length}</span></button>)}
-          {canManage && <button className="nav-link w-full text-brand-500" onClick={() => { const n = prompt("Folder name"); if (n) start(async () => { await createFolder(n); router.refresh(); }); }}><FolderPlus size={15} /> New folder</button>}
+          <button className="tab-link w-full" data-active={!folder} onClick={() => setFolder(null)}><Folder size={15} /> All files <span className="muted ml-auto text-xs">{assets.length}</span></button>
+          {folders.map((f) => <button key={f.id} className="tab-link w-full" data-active={folder === f.id} onClick={() => setFolder(f.id)}><Folder size={15} /> <span className="truncate">{f.name}</span><span className="muted ml-auto text-xs">{assets.filter((a) => a.folderId === f.id).length}</span></button>)}
+          {canManage && <button className="tab-link w-full text-brand-500" onClick={() => { const n = prompt("Folder name"); if (n) start(async () => { await createFolder(n); router.refresh(); }); }}><FolderPlus size={15} /> New folder</button>}
         </div></Card>
         {canManage && <Uploader folderId={folder} onUploaded={(a) => setAssets((x) => [a, ...x])} />}
       </div>
@@ -49,7 +49,7 @@ export function MediaLibrary({ initial, folders, canManage }: { initial: Asset[]
           <select className="input w-36" value={kind} onChange={(e) => setKind(e.target.value)}><option value="">All types</option><option value="image">Images</option><option value="gif">GIFs</option><option value="video">Videos</option><option value="document">Documents</option></select>
         </div>
         {err && <Notice tone="error">{err}</Notice>}
-        {shown.length === 0 ? <Card><Empty title="No media here yet" body="Upload images, videos, logos and campaign assets to reuse them across posts." /></Card> : (
+        {shown.length === 0 ? <Card><Empty title="No media here yet" body="Upload once, reuse anywhere." /></Card> : (
           <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4 xl:grid-cols-6">
             {shown.map((a) => (
               <button key={a.id} onClick={() => setSel(a)} className={cx("panel group overflow-hidden text-left", sel?.id === a.id && "ring-2 ring-brand-500")}>
@@ -74,11 +74,11 @@ export function MediaLibrary({ initial, folders, canManage }: { initial: Asset[]
               <label className="label">Tags (comma separated)</label><input name="tags" className="input" defaultValue={sel.tags.join(", ")} key={`t${sel.id}`} />
               <label className="label">Folder</label><select name="folder" className="input" defaultValue={sel.folderId ?? ""} key={`f${sel.id}`}><option value="">None</option>{folders.map((f) => <option key={f.id} value={f.id}>{f.name}</option>)}</select>
               <div className="flex gap-2"><button className="btn-primary flex-1" disabled={pending}>Save</button>
-                <button type="button" className="btn-secondary text-red-500" disabled={pending} onClick={() => confirm("Delete this file?") && start(async () => { const r = await deleteMedia(sel.id); if (r.ok) { setAssets((x) => x.filter((a) => a.id !== sel.id)); setSel(null); } else setErr(r.error); })}><Trash2 size={15} /></button></div>
+                <button type="button" className="btn-secondary text-red-600 dark:text-red-400" disabled={pending} onClick={() => confirm("Delete this file?") && start(async () => { const r = await deleteMedia(sel.id); if (r.ok) { setAssets((x) => x.filter((a) => a.id !== sel.id)); setSel(null); } else setErr(r.error); })}><Trash2 size={15} /></button></div>
             </form>
           )}
           <h4 className="mb-1 mt-4 text-xs font-semibold">Network compatibility</h4>
-          <ul className="space-y-1 text-xs">{compat(sel).map(({ p, ok, why }) => <li key={p.id} className="flex justify-between"><span>{p.name}</span><span className={ok ? "text-emerald-500" : "text-red-500"}>{ok ? "✓ OK" : why}</span></li>)}</ul>
+          <ul className="space-y-1 text-xs">{compat(sel).map(({ p, ok, why }) => <li key={p.id} className="flex justify-between"><span>{p.name}</span><span className={ok ? "text-emerald-700 dark:text-emerald-400" : "text-red-600 dark:text-red-400"}>{ok ? "✓ OK" : why}</span></li>)}</ul>
         </div>
       )}
     </div>

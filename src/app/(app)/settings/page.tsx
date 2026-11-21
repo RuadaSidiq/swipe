@@ -16,7 +16,7 @@ export default async function Settings() {
     db.user.findUniqueOrThrow({ where: { id: ctx.user.id }, select: { totpEnabledAt: true } }),
   ]);
   const prefRows = Object.entries(NOTIFICATION_TYPES).map(([type, t]) => { const p = prefs.find((x) => x.type === type); return { type, label: t.label, inApp: p?.inApp ?? true, email: p?.email ?? t.defaultEmail }; });
-  return (<><PageHeader title="Settings" subtitle="Your profile, this workspace, brand voices and preferences." />
+  return (<><PageHeader title="Settings" />
     <div className="mb-4"><TwoFactorCard enabled={Boolean(me.totpEnabledAt)} /></div>
     <SettingsClient user={ctx.user} workspace={ctx.workspace} brands={JSON.parse(JSON.stringify(brands))} slots={slots.map((s) => ({ weekday: s.weekday, minuteOfDay: s.minuteOfDay, platform: s.platform }))} prefs={prefRows}
       canWorkspace={ctx.can("workspace.settings")} isOwner={ctx.role === "OWNER"} canCreateWs={ctx.role === "OWNER" || ctx.role === "ADMIN"} features={plan.features} /></>);

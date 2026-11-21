@@ -16,7 +16,7 @@ export default async function InboxPage({ searchParams }: { searchParams: Promis
   const sp = await searchParams;
   const ws = ctx.workspace.id;
   const hasDemo = env.demoMode && (await db.conversation.count({ where: { workspaceId: ws, isDemo: true } })) > 0;
-  if (!plan.features.inbox && !hasDemo) return <Card><Empty title="The unified inbox is part of Professional and Agency" body="Upgrade to receive Instagram, Facebook, WhatsApp, Telegram and other supported messages and comments in one place." action={<Link href="/billing" className="btn-primary">See plans</Link>} /></Card>;
+  if (!plan.features.inbox && !hasDemo) return <Card><Empty title="The unified inbox is part of Professional and Agency" body="Upgrade to answer every network in one place." action={<Link href="/billing" className="btn-primary">See plans</Link>} /></Card>;
   const f = sp.f ?? "open";
   const where: Prisma.ConversationWhereInput = { workspaceId: ws, ...(!plan.features.inbox ? { isDemo: true } : {}) };
   if (f === "open") where.status = { in: ["OPEN", "PENDING"] };

@@ -18,7 +18,7 @@ export default async function Search({ searchParams }: { searchParams: Promise<{
   ]);
   const total = posts.length + convs.length + contacts.length + campaigns.length + media.length + accounts.length;
   return (<>
-    <PageHeader title={term ? `Results for “${term}”` : "Search"} subtitle={term ? `${total} results` : "Search posts, conversations, contacts, campaigns, media and accounts."} />
+    <PageHeader title={term ? `Results for “${term}”` : "Search"} subtitle={term ? `${total} results` : undefined} />
     <form className="mb-4"><input name="q" defaultValue={q} className="input max-w-lg" placeholder="Search…" autoFocus /></form>
     {term && total === 0 && <Card><Empty title="Nothing found" /></Card>}
     <div className="grid gap-4 lg:grid-cols-2">

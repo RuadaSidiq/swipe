@@ -20,13 +20,12 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   ]);
   const banners = (
     <>
-      {env.demoMode && <div className="no-print bg-fuchsia-600 px-4 py-1.5 text-center text-xs font-medium text-white">Demo mode is on — accounts marked DEMO are sandboxes: their publishing and replies are simulated and clearly labelled. Turn DEMO_MODE off in production.</div>}
-      {plan.status === "trial_expired" && <div className="no-print bg-amber-500 px-4 py-1.5 text-center text-xs font-medium text-black">Your trial has ended and the workspace is on Free limits. <Link className="underline" href="/billing">Choose a plan</Link></div>}
-      {plan.status === "past_due" && <div className="no-print bg-red-600 px-4 py-1.5 text-center text-xs font-medium text-white">Your last payment failed. <Link className="underline" href="/billing">Update billing</Link> to avoid interruption.</div>}
+      {plan.status === "trial_expired" && <div className="no-print mx-4 rounded-lg bg-amber-400/20 px-4 py-2 text-sm md:mx-8">Trial ended. You&apos;re on Free limits. <Link className="font-medium underline" href="/billing">Choose a plan</Link></div>}
+      {plan.status === "past_due" && <div className="no-print mx-4 rounded-lg bg-red-500/15 px-4 py-2 text-sm md:mx-8">Payment failed. <Link className="font-medium underline" href="/billing">Update billing</Link></div>}
     </>
   );
   return (
-    <Shell user={ctx.user} workspace={ctx.workspace} workspaces={workspaces.map((m) => m.workspace)} counts={{ inbox, notifications, approvals, accounts }} banners={banners}>
+    <Shell user={ctx.user} workspace={ctx.workspace} workspaces={workspaces.map((m) => m.workspace)} counts={{ inbox, notifications, approvals, accounts }} demo={env.demoMode} banners={banners}>
       {children}
     </Shell>
   );

@@ -43,7 +43,7 @@ export default async function PostDetail({ params, searchParams }: { params: Pro
                   {t.simulated && <div className="muted mt-2 text-xs">Demo account — publishing was simulated. Nothing was sent to {p.name}.</div>}
                   {Object.keys(totals).length > 0 && <div className="mt-2 flex flex-wrap gap-3 text-xs">{Object.entries(totals).map(([k, m]) => <span key={k} title={m.src}><b>{m.v.toLocaleString()}</b> <span className="muted">{k}</span></span>)}</div>}
                   {(t.body || t.title) && <details className="mt-2 text-xs"><summary className="muted cursor-pointer">Customized version</summary><div className="soft mt-1 whitespace-pre-wrap rounded p-2">{t.title && <b>{t.title}{"\n"}</b>}{t.body}</div></details>}
-                  {t.attemptsLog.length > 0 && <details className="mt-1 text-xs"><summary className="muted cursor-pointer">Publishing log</summary><ul className="mt-1 space-y-0.5">{t.attemptsLog.map((a) => <li key={a.id} className={a.ok ? "text-emerald-600" : "text-red-500"}>{fmtDate(a.createdAt, tz, "MMM d HH:mm:ss")} — {a.message}</li>)}</ul></details>}
+                  {t.attemptsLog.length > 0 && <details className="mt-1 text-xs"><summary className="muted cursor-pointer">Publishing log</summary><ul className="mt-1 space-y-0.5">{t.attemptsLog.map((a) => <li key={a.id} className={a.ok ? "text-emerald-700 dark:text-emerald-400" : "text-red-600 dark:text-red-400"}>{fmtDate(a.createdAt, tz, "MMM d HH:mm:ss")} — {a.message}</li>)}</ul></details>}
                 </li>);
             })}{post.targets.length === 0 && <li className="muted p-4 text-sm">No destinations selected.</li>}</ul>
           </Card>
@@ -56,7 +56,7 @@ export default async function PostDetail({ params, searchParams }: { params: Pro
         </div>
         <Card title="Review & comments">
           <ul className="mb-3 space-y-3">{post.comments.map((c) => (
-            <li key={c.id} className="text-sm"><div className="flex items-center gap-2"><b>{c.userName}</b>{c.kind !== "comment" && <span className={`chip ${c.kind === "approval" ? "bg-emerald-500/15 text-emerald-600" : c.kind === "changes_requested" ? "bg-orange-500/15 text-orange-600" : "soft"}`}>{c.kind.replace("_", " ")}</span>}<span className="muted text-xs">{fmtDate(c.createdAt, tz, "MMM d HH:mm")}</span></div><div className="mt-0.5 whitespace-pre-wrap">{c.body}</div></li>))}
+            <li key={c.id} className="text-sm"><div className="flex items-center gap-2"><b>{c.userName}</b>{c.kind !== "comment" && <span className={`chip ${c.kind === "approval" ? "bg-emerald-500/15 text-emerald-700 dark:text-emerald-400" : c.kind === "changes_requested" ? "bg-orange-500/15 text-orange-600" : "soft"}`}>{c.kind.replace("_", " ")}</span>}<span className="muted text-xs">{fmtDate(c.createdAt, tz, "MMM d HH:mm")}</span></div><div className="mt-0.5 whitespace-pre-wrap">{c.body}</div></li>))}
             {post.comments.length === 0 && <li className="muted text-sm">No comments yet. Use internal comments to collaborate before publishing.</li>}</ul>
           <CommentBox postId={post.id} />
         </Card>

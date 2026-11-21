@@ -15,9 +15,9 @@ export default async function Billing({ searchParams }: { searchParams: Promise<
   const meters: [string, number, number][] = [["Connected accounts", u.accounts, plan.limits.accounts], ["Scheduled posts", u.scheduledPosts, plan.limits.scheduledPosts], ["Workspaces", u.workspaces, plan.limits.workspaces],
     ["Team members", members, plan.limits.members], ["AI requests this month", u.aiRequests, plan.limits.aiRequestsPerMonth], ["Active automations", u.automations, plan.limits.automations], ["Storage (MB)", u.storageMb, plan.limits.storageMb]];
   return (<>
-    <PageHeader title="Billing" subtitle="Plan, usage, invoices and payment." />
+    <PageHeader title="Billing" />
     {sp.success && <div className="mb-4"><Notice tone="success">Thanks! Your subscription is being activated — it may take a few seconds to appear.</Notice></div>}
-    {!stripeEnabled() && <div className="mb-4"><Notice tone="warn">Payments aren&apos;t configured on this server (STRIPE_SECRET_KEY). Plans can be assigned by a platform admin in the admin console.</Notice></div>}
+    {!stripeEnabled() && <div className="mb-4"><Notice tone="warn">Payments aren&apos;t set up yet (STRIPE_SECRET_KEY).</Notice></div>}
     <div className="grid gap-4 xl:grid-cols-3">
       <Card title="Current plan">
         <div className="text-2xl font-semibold">{plan.name}</div>

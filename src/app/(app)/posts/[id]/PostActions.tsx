@@ -19,7 +19,7 @@ export function PostActions({ post, can }: { post: { id: string; status: string;
       {editable && can.edit && <Link href={`/publisher?id=${post.id}`} className="btn-secondary">Edit</Link>}
       {post.status === "SCHEDULED" && can.schedule && <button className="btn-secondary" disabled={pending} onClick={() => go(() => unscheduleAction(post.id))}>Unschedule</button>}
       {can.create && <button className="btn-secondary" disabled={pending} onClick={() => go(() => duplicateAction(post.id), (id) => router.push(`/publisher?id=${id}`))}>Duplicate</button>}
-      {can.del && post.status !== "PUBLISHING" && <button className="btn-ghost text-red-500" disabled={pending} onClick={() => confirm(post.status === "PUBLISHED" ? "Delete this post from Orbit? (It stays live on the networks.)" : "Delete this post?") && go(() => deleteAction(post.id), () => router.push("/posts"))}>Delete</button>}
+      {can.del && post.status !== "PUBLISHING" && <button className="btn-ghost text-red-600 dark:text-red-400" disabled={pending} onClick={() => confirm(post.status === "PUBLISHED" ? "Delete this post from Orbit? (It stays live on the networks.)" : "Delete this post?") && go(() => deleteAction(post.id), () => router.push("/posts"))}>Delete</button>}
     </div>
   );
 }

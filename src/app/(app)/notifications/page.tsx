@@ -9,7 +9,7 @@ export default async function Notifications({ searchParams }: { searchParams: Pr
   const ctx = await requireCtx(); const sp = await searchParams;
   const list = await db.notification.findMany({ where: { userId: ctx.user.id, workspaceId: ctx.workspace.id, ...(sp.unread ? { readAt: null } : {}) }, orderBy: { createdAt: "desc" }, take: 200 });
   return (<>
-    <PageHeader title="Notifications" subtitle={<>Messages, comments, publishing results, account problems and approvals. <Link href="/settings#notifications" className="text-brand-500">Notification preferences</Link></>} actions={<><Link href={sp.unread ? "/notifications" : "/notifications?unread=1"} className="btn-secondary">{sp.unread ? "Show all" : "Unread only"}</Link><MarkAllRead /></>} />
+    <PageHeader title="Notifications" actions={<><Link href={sp.unread ? "/notifications" : "/notifications?unread=1"} className="btn-secondary">{sp.unread ? "Show all" : "Unread only"}</Link><MarkAllRead /></>} />
     <Card pad={false}>{list.length === 0 ? <Empty title="You're all caught up" /> : <ul>{list.map((n) => (
       <li key={n.id} className={cx("line border-t px-4 py-3 first:border-t-0", !n.readAt && "bg-brand-500/5")}>
         <div className="flex items-start gap-3">{!n.readAt && <span className="mt-1.5 h-2 w-2 shrink-0 rounded-full bg-brand-500" />}

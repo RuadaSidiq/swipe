@@ -21,7 +21,7 @@ export default async function PublisherPage({ searchParams }: { searchParams: Pr
   ]);
   const accounts = accountsRaw.filter((a) => platformCanPublish(PLATFORMS[a.platform as PlatformId]));
   if (sp.id && !post) return <Notice tone="error">Post not found.</Notice>;
-  if (post && ["PUBLISHED", "PUBLISHING"].includes(post.status)) return <Notice tone="warn">This post has already been published and can&apos;t be edited. Duplicate it from the Posts page instead.</Notice>;
+  if (post && ["PUBLISHED", "PUBLISHING"].includes(post.status)) return <Notice tone="warn">Published posts can&apos;t be edited. Duplicate it instead.</Notice>;
   const initial: Initial = post ? {
     id: post.id, title: post.title, body: post.body, link: post.link ?? "", mediaIds: post.mediaIds, campaignId: post.campaignId ?? "", brandId: post.brandId ?? "", tags: post.tags,
     scheduledAt: post.scheduledAt?.toISOString() ?? "", status: post.status, recurrence: post.recurrence as Initial["recurrence"],
@@ -33,8 +33,8 @@ export default async function PublisherPage({ searchParams }: { searchParams: Pr
   };
   return (
     <>
-      <PageHeader title={post ? "Edit post" : "Create post"} subtitle="Write once, tailor per network, preview, then publish or schedule. Each destination is published and tracked separately." />
-      {!env.aiConfigured && <div className="mb-4"><Notice tone="info">AI writing tools are off — set <code>ANTHROPIC_API_KEY</code> on the server to enable them.</Notice></div>}
+      <PageHeader title={post ? "Edit post" : "Create post"} />
+      
       <Composer accounts={JSON.parse(JSON.stringify(accounts))} media={JSON.parse(JSON.stringify(media))} campaigns={campaigns} brands={brands} initial={initial}
         canPublish={ctx.can("posts.publish")} canSchedule={ctx.can("posts.schedule") || (ctx.workspace.requireApproval && ctx.can("posts.create"))}
         needsApproval={ctx.workspace.requireApproval && !ctx.can("posts.approve")} aiEnabled={env.aiConfigured && ctx.can("ai.use")} timezone={ctx.user.timezone || ctx.workspace.timezone} />

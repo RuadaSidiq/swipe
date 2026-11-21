@@ -31,7 +31,7 @@ export function Assistant({ brands, platforms }: { brands: { id: string; name: s
         {tool === "chat" && (
           <Card pad={false}>
             <div className="max-h-[55vh] min-h-[300px] space-y-3 overflow-y-auto p-4">
-              {chat.length === 0 && <div className="muted text-sm">Ask anything about your social strategy — e.g. “What should we post this week for our launch?” or “Give me 5 hooks for a behind-the-scenes reel”. The assistant can see your connected accounts, upcoming and recent posts, and campaigns.</div>}
+              {chat.length === 0 && <div className="muted text-sm">Try “What should we post this week?”</div>}
               {chat.map((m, i) => <div key={i} className={cx("max-w-[85%] whitespace-pre-wrap rounded-2xl px-3.5 py-2 text-sm", m.role === "user" ? "ml-auto bg-brand-500 text-white" : "soft")}>{m.content}
                 {m.role === "assistant" && <div className="mt-1 flex gap-2"><CopyBtn text={m.content} /><Link className="text-xs opacity-70 hover:underline" href={`/publisher`} onClick={() => sessionStorage.setItem("orbit-draft", m.content)}>Use in post</Link></div>}</div>)}
               {busy && <div className="muted text-sm">Thinking…</div>}
@@ -78,7 +78,7 @@ export function Assistant({ brands, platforms }: { brands: { id: string; name: s
         )}
         {tool === "review" && (
           <Card title="Review my content">
-            <p className="muted mb-3 text-sm">The assistant reviews your 25 most recent posts and drafts — captions, CTAs, repetition, brand consistency, gaps and alternative hooks — using any performance data Orbit has collected.</p>
+            <p className="muted mb-3 text-sm">Get feedback on your 25 latest posts and drafts.</p>
             <button className="btn-primary" disabled={busy} onClick={() => run(() => aiReview(bid))}><Sparkles size={15} /> {busy ? "Reviewing…" : "Run review"}</button>
           </Card>
         )}

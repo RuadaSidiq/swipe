@@ -13,7 +13,7 @@ export default async function InvitePage({ params }: { params: Promise<{ token: 
   return (
     <main className="flex min-h-screen items-center justify-center p-4">
       <div className="panel w-full max-w-md space-y-4 p-6">
-        {!valid ? <p>This invitation is invalid, already used or expired. Ask your workspace admin for a new one.</p> : (
+        {!valid ? <p>This invite has expired. Ask your admin for a new one.</p> : (
           <>
             <h1 className="text-lg font-semibold">Join {inv.workspace.name}</h1>
             <p className="muted text-sm">You&apos;ve been invited as <b>{ROLE_LABELS[inv.role]}</b> ({inv.email}).</p>

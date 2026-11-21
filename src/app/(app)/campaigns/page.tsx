@@ -14,8 +14,8 @@ export default async function Campaigns() {
     db.brand.findMany({ where: { workspaceId: ws }, select: { id: true, name: true } }),
   ]);
   return (<>
-    <PageHeader title="Campaigns" subtitle="Group posts, accounts, assets and people around a launch, event or promotion." actions={ctx.can("campaigns.manage") && <NewCampaign accounts={accounts} members={members.map((m) => ({ id: m.id, name: m.user.name }))} brands={brands} />} />
-    {campaigns.length === 0 ? <Card><Empty title="No campaigns yet" body="Create a campaign to plan content around a product launch, event or promotion." /></Card> : (
+    <PageHeader title="Campaigns" actions={ctx.can("campaigns.manage") && <NewCampaign accounts={accounts} members={members.map((m) => ({ id: m.id, name: m.user.name }))} brands={brands} />} />
+    {campaigns.length === 0 ? <Card><Empty title="No campaigns yet" body="Plan a launch, event or promotion." /></Card> : (
       <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">{campaigns.map((c) => { const s = (st: string[]) => c.posts.filter((p) => st.includes(p.status)).length; return (
         <Link key={c.id} href={`/campaigns/${c.id}`} className="panel block p-4 transition hover:shadow-md" style={{ borderTop: `3px solid ${c.color}` }}>
           <div className="flex items-center justify-between"><div className="font-semibold">{c.name}</div><span className="chip soft capitalize">{c.status}</span></div>

@@ -17,7 +17,7 @@ export function BillingClient({ mode, plans, current, stripe, hasStripeSub, canc
     </div>);
   return (
     <div>
-      <div className="mb-3 flex items-center gap-2 text-sm"><button className={cx("btn py-1", !annual ? "soft font-medium" : "muted")} onClick={() => setAnnual(false)}>Monthly</button><button className={cx("btn py-1", annual ? "soft font-medium" : "muted")} onClick={() => setAnnual(true)}>Annual <span className="chip bg-emerald-500/15 text-emerald-600">2 months free</span></button></div>
+      <div className="mb-3 flex items-center gap-2 text-sm"><button className={cx("btn py-1", !annual ? "soft font-medium" : "muted")} onClick={() => setAnnual(false)}>Monthly</button><button className={cx("btn py-1", annual ? "soft font-medium" : "muted")} onClick={() => setAnnual(true)}>Annual <span className="chip bg-emerald-500/15 text-emerald-700 dark:text-emerald-400">2 months free</span></button></div>
       {err && <div className="mb-3"><Notice tone="error">{err}</Notice></div>}
       <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">{plans!.map((p) => (
         <div key={p.id} className={cx("panel flex flex-col p-4", p.id === current && "ring-2 ring-brand-500")}>
@@ -25,7 +25,7 @@ export function BillingClient({ mode, plans, current, stripe, hasStripeSub, canc
           <div className="muted text-xs">{p.tagline}</div>
           <div className="mt-3 text-3xl font-semibold">${annual ? Math.round(p.annual / 12) : p.monthly}<span className="muted text-sm font-normal">/mo</span></div>
           {annual && p.annual > 0 && <div className="muted text-xs">${p.annual} billed yearly</div>}
-          <ul className="mt-3 flex-1 space-y-1.5 text-sm">{p.highlights.map((h) => <li key={h} className="flex gap-2"><Check size={15} className="mt-0.5 shrink-0 text-emerald-500" />{h}</li>)}</ul>
+          <ul className="mt-3 flex-1 space-y-1.5 text-sm">{p.highlights.map((h) => <li key={h} className="flex gap-2"><Check size={15} className="mt-0.5 shrink-0 text-emerald-700 dark:text-emerald-400" />{h}</li>)}</ul>
           {p.id !== "free" && p.id !== current && <button className="btn-primary mt-4" disabled={!stripe || pending} onClick={() => go(() => checkout(p.id, annual ? "year" : "month"))}>{hasStripeSub ? "Switch plan" : "Upgrade"}</button>}
           {p.id === "free" && current !== "free" && hasStripeSub && <p className="muted mt-4 text-xs">Cancel your subscription to return to Free.</p>}
         </div>))}</div>

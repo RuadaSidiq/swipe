@@ -2,32 +2,90 @@
 @tailwind components;
 @tailwind utilities;
 
-:root { --bg: #f6f7fb; --panel: #ffffff; --line: #e6e8ef; --text: #12151d; --muted: #646b7f; --soft: #f1f2f7; }
-@media (prefers-color-scheme: dark) {
-  :root { --bg: #0b0d12; --panel: #12151c; --line: #222736; --text: #e8eaf1; --muted: #8b92a7; --soft: #181c26; }
+/* Tokens */
+:root {
+  --bg: #F2F4F1;          /* sage canvas */
+  --panel: #FFFFFF;
+  --raised: #FBFCFB;
+  --line: #DFE5E1;
+  --line-strong: #C9D3CE;
+  --text: #0E1F1B;        /* ink */
+  --muted: #5E716B;
+  --soft: #EAEEEB;
+  --accent: #127A6B;      /* teal: links, selection, primary buttons */
+  --accent-soft: #E3F2EE;
+  --signal: #FFC93C;      /* on-air yellow: the one loud colour */
+  --live: #E5484D;
+  --console: #0E1F1B;     /* sidebar */
+  --console-text: #C9D6D1;
+  --console-muted: #7F9891;
+  --console-hover: #17302A;
+  --focus: 0 0 0 3px rgba(18, 122, 107, .28);
+  color-scheme: light;
 }
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #0A1412; --panel: #101D1A; --raised: #13221F; --line: #1F322D; --line-strong: #2B443E;
+    --text: #E6EEEB; --muted: #8DA29C; --soft: #172925; --accent: #3FB8A4; --accent-soft: #123630;
+    --console: #07100E; --console-text: #C9D6D1; --console-muted: #6F8882; --console-hover: #122520;
+    --focus: 0 0 0 3px rgba(63, 184, 164, .35);
+    color-scheme: dark;
+  }
+}
+
 html, body { background: var(--bg); color: var(--text); }
-body { font-feature-settings: "cv11", "ss01"; -webkit-font-smoothing: antialiased; }
+body { font-feature-settings: "ss01", "cv11"; -webkit-font-smoothing: antialiased; font-size: 14.5px; line-height: 1.5; }
+h1, h2, h3, .font-display { font-family: theme("fontFamily.display"); letter-spacing: -0.015em; }
+h1 { text-wrap: balance; }
+::selection { background: var(--signal); color: #0E1F1B; }
+:focus-visible { outline: none; box-shadow: var(--focus); border-radius: 8px; }
+@media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation: none !important; transition: none !important; } }
 
 @layer components {
+  /* Surfaces: panels are quiet; only the rundown is loud */
   .panel { @apply rounded-xl border; background: var(--panel); border-color: var(--line); }
   .muted { color: var(--muted); }
   .soft { background: var(--soft); }
   .line { border-color: var(--line); }
-  .input { @apply w-full rounded-lg border px-3 py-2 text-sm outline-none transition focus:ring-2 focus:ring-brand-500/40; background: var(--panel); border-color: var(--line); color: var(--text); }
-  .btn { @apply inline-flex items-center justify-center gap-1.5 rounded-lg px-3.5 py-2 text-sm font-medium transition disabled:cursor-not-allowed disabled:opacity-50; }
-  .btn-primary { @apply btn bg-brand-500 text-white hover:bg-brand-600; }
-  .btn-secondary { @apply btn border; background: var(--panel); border-color: var(--line); }
-  .btn-secondary:hover { background: var(--soft); }
-  .btn-ghost { @apply btn; }
-  .btn-ghost:hover { background: var(--soft); }
+
+  .input { @apply w-full rounded-lg border px-3 py-2 text-sm outline-none transition; background: var(--panel); border-color: var(--line-strong); color: var(--text); }
+  .input::placeholder { color: var(--muted); opacity: .8; }
+  .input:focus { border-color: var(--accent); box-shadow: var(--focus); }
+
+  .btn { @apply inline-flex items-center justify-center gap-1.5 rounded-lg px-3.5 py-2 text-sm font-medium transition disabled:cursor-not-allowed disabled:opacity-45; }
+  .btn-primary { @apply btn; background: var(--text); color: var(--bg); }
+  .btn-primary:hover:not(:disabled) { background: var(--accent); color: #fff; }
+  .btn-signal { @apply btn font-semibold; background: var(--signal); color: #0E1F1B; }
+  .btn-signal:hover:not(:disabled) { background: #FFD35C; }
+  .btn-secondary { @apply btn border; background: var(--panel); border-color: var(--line-strong); }
+  .btn-secondary:hover:not(:disabled) { border-color: var(--text); }
+  .btn-ghost { @apply btn; color: var(--muted); }
+  .btn-ghost:hover:not(:disabled) { background: var(--soft); color: var(--text); }
   .btn-danger { @apply btn bg-red-600 text-white hover:bg-red-700; }
-  .label { @apply mb-1 block text-xs font-medium; color: var(--muted); }
-  .chip { @apply inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-medium; }
-  .nav-link { @apply flex items-center gap-2.5 rounded-lg px-2.5 py-1.5 text-sm transition; color: var(--muted); }
-  .nav-link:hover { background: var(--soft); color: var(--text); }
-  .nav-link[data-active="true"] { background: var(--soft); color: var(--text); font-weight: 500; }
-  .table th { @apply px-3 py-2 text-left text-xs font-medium; color: var(--muted); }
-  .table td { @apply border-t px-3 py-2.5 text-sm; border-color: var(--line); }
+
+  .label { @apply mb-1 block text-[13px] font-medium; color: var(--muted); }
+  .chip { @apply inline-flex items-center gap-1 rounded-md px-1.5 py-0.5 text-[11.5px] font-medium leading-tight; }
+
+  /* Console sidebar */
+  .nav-link { @apply relative flex items-center gap-2.5 rounded-lg px-2.5 py-[7px] text-[13.5px] transition; color: var(--console-text); }
+  .nav-link:hover { background: var(--console-hover); color: #fff; }
+  .nav-link[data-active="true"] { background: var(--console-hover); color: #fff; font-weight: 500; }
+  .nav-link[data-active="true"]::before { content: ""; position: absolute; left: -12px; top: 8px; bottom: 8px; width: 3px; border-radius: 0 3px 3px 0; background: var(--signal); }
+
+  /* Light-surface nav (inbox folders, settings tabs) */
+  .tab-link { @apply flex items-center gap-2 rounded-lg px-2.5 py-1.5 text-sm transition; color: var(--muted); }
+  .tab-link:hover { background: var(--soft); color: var(--text); }
+  .tab-link[data-active="true"] { background: var(--accent-soft); color: var(--accent); font-weight: 500; }
+
+  .table th { @apply px-4 py-2.5 text-left text-[12.5px] font-medium; color: var(--muted); border-bottom: 1px solid var(--line); }
+  .table td { @apply border-t px-4 py-3 text-sm; border-color: var(--line); }
+  .table tbody tr:first-child td { border-top: 0; }
+
+  .section-title { @apply font-display text-[15px] font-semibold; }
+  .num { font-family: theme("fontFamily.display"); font-variant-numeric: tabular-nums; letter-spacing: -0.02em; }
 }
+
+@keyframes pulse-live { 0%, 100% { opacity: 1; } 50% { opacity: .35; } }
+.live-dot { animation: pulse-live 2s ease-in-out infinite; }
+
 @media print { .no-print { display: none !important; } body { background: white; } .panel { border-color: #ddd; } }

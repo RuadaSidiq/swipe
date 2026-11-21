@@ -22,7 +22,7 @@ export default async function CalendarPage({ searchParams }: { searchParams: Pro
     targets: p.targets.map((t) => ({ status: t.status, platform: t.account.platform, accountId: t.account.id, name: t.account.displayName })) }));
   return (
     <>
-      <PageHeader title="Content calendar" subtitle={`Drag scheduled posts to a new day to reschedule. Times shown in ${ctx.user.timezone}.`} />
+      <PageHeader title="Calendar" />
       <CalendarView items={items} accounts={accounts} campaigns={JSON.parse(JSON.stringify(campaigns))} slots={slots} tz={ctx.user.timezone} initialView={(sp.view as "month") ?? "month"} anchorIso={anchor.toISOString()} canSchedule={ctx.can("posts.schedule")} />
     </>
   );

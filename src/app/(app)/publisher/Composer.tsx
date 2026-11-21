@@ -71,6 +71,7 @@ export function Composer({ accounts, media: initialMedia, campaigns, brands, ini
     : [...ts, { accountId: a.id, customize: false, body: "", title: "", link: "", useCustomMedia: false, mediaIds: [], options: a.platform === "youtube" ? { visibility: "private" } : a.platform === "tiktok" ? { privacy: "SELF_ONLY" } : {} }]);
   const patch = (id: string, p: Partial<TargetState>) => setTargets((ts) => ts.map((t) => (t.accountId === id ? { ...t, ...p } : t)));
   const errors = reports.reduce((n, r) => n + r.issues.filter((i) => i.level === "error").length, 0);
+  const touched = Boolean(body.trim() || mediaIds.length || link || targets.some((t) => t.customize || t.useCustomMedia)) || Boolean(msg);
 
   const submit = (action: "draft" | "schedule" | "publish_now") => start(async () => {
     setMsg(null);
@@ -109,8 +110,8 @@ export function Composer({ accounts, media: initialMedia, campaigns, brands, ini
                 return (
                   <button key={a.id} type="button" disabled={disabled} onClick={() => toggleAccount(a)} title={disabled ? "Reconnect this account first" : a.displayName}
                     className={cx("flex items-center gap-2 rounded-full border py-1 pl-1 pr-3 text-sm transition line", on ? "border-brand-500 bg-brand-500/10" : "opacity-70 hover:opacity-100", disabled && "cursor-not-allowed opacity-40")}>
-                    <Avatar src={a.avatarUrl} name={a.displayName} size={24} platform={a.platform} />
-                    <span className="max-w-[10rem] truncate">{a.displayName}</span>{a.isDemo && <DemoBadge />}
+                    {a.avatarUrl ? <Avatar src={a.avatarUrl} name={a.displayName} size={24} platform={a.platform} /> : <PlatformBadge id={a.platform} size={22} />}
+                    <span className="max-w-[10rem] truncate">{a.displayName}</span>
                   </button>
                 );
               }))}
@@ -124,13 +125,13 @@ export function Composer({ accounts, media: initialMedia, campaigns, brands, ini
             {targets.map((t) => { const a = accounts.find((x) => x.id === t.accountId)!; const r = reports.find((x) => x.accountId === t.accountId); const bad = r?.issues.some((i) => i.level === "error");
               return (<button key={t.accountId} onClick={() => setTab(t.accountId)} className={cx("flex items-center gap-1.5 whitespace-nowrap rounded-t-lg px-3 py-2 text-sm", tab === t.accountId ? "soft font-medium" : "muted")}>
                 <PlatformBadge id={a.platform} size={16} /> {a.displayName.slice(0, 18)} {t.customize && <span className="h-1.5 w-1.5 rounded-full bg-brand-500" title="Customized" />}
-                {bad ? <AlertTriangle size={13} className="text-red-500" /> : r ? <CheckCircle2 size={13} className="text-emerald-500" /> : null}</button>); })}
+                {bad ? <AlertTriangle size={13} className="text-red-600 dark:text-red-400" /> : r ? <CheckCircle2 size={13} className="text-emerald-700 dark:text-emerald-400" /> : null}</button>); })}
           </div>
           <div className="space-y-3 p-4">
             {tab === "all" || !activeTarget || !activeAcc ? (
               <>
                 {platforms.some((p) => PLATFORMS[p].limits.title) && <input className="input" placeholder={`Title (used by ${platforms.filter((p) => PLATFORMS[p].limits.title).map((p) => PLATFORMS[p].name).join(", ")})`} value={title} onChange={(e) => setTitle(e.target.value)} />}
-                <textarea ref={bodyRef} className="input min-h-[180px] resize-y leading-relaxed" placeholder="What do you want to share? Write once — then customize per network." value={body} onChange={(e) => setBody(e.target.value)} />
+                <textarea ref={bodyRef} className="input min-h-[180px] resize-y leading-relaxed" placeholder="What do you want to share?" value={body} onChange={(e) => setBody(e.target.value)} />
                 <CharCounters text={body} link={link} platforms={platforms} />
                 <input className="input" placeholder="Link (optional)" value={link} onChange={(e) => setLink(e.target.value)} type="url" />
                 <MediaStrip ids={mediaIds} byId={mediaById} onRemove={(id) => setMediaIds((m) => m.filter((x) => x !== id))} onMove={(from, to) => setMediaIds((m) => { const c = [...m]; const [x] = c.splice(from, 1); c.splice(to, 0, x); return c; })} onAdd={() => setPicker("base")} />
@@ -142,7 +143,7 @@ export function Composer({ accounts, media: initialMedia, campaigns, brands, ini
                   <div className="flex gap-2">
                     <label className="flex items-center gap-1.5 text-sm"><input type="checkbox" checked={activeTarget.customize} onChange={(e) => patch(activeTarget.accountId, { customize: e.target.checked, body: activeTarget.body || body, title: activeTarget.title || title, link: activeTarget.link || link })} /> Customize text</label>
                     <label className="flex items-center gap-1.5 text-sm"><input type="checkbox" checked={activeTarget.useCustomMedia} onChange={(e) => patch(activeTarget.accountId, { useCustomMedia: e.target.checked, mediaIds: activeTarget.mediaIds.length ? activeTarget.mediaIds : mediaIds })} /> Custom media</label>
-                    <button className="btn-ghost py-1 text-red-500" onClick={() => { toggleAccount(activeAcc); setTab("all"); }}><X size={14} /> Remove</button>
+                    <button className="btn-ghost py-1 text-red-600 dark:text-red-400" onClick={() => { toggleAccount(activeAcc); setTab("all"); }}><X size={14} /> Remove</button>
                   </div>
                 </div>
                 {activeTarget.customize ? (
@@ -174,7 +175,7 @@ export function Composer({ accounts, media: initialMedia, campaigns, brands, ini
               <button className="btn-secondary py-1.5 text-sm" disabled={!!aiBusy || !body.trim()} onClick={() => { const l = prompt("Translate into which language?", "Spanish"); if (l) runAI("translate", () => aiRewrite({ text: body, mode: "translate", language: l, brandId: brandId || null }), setBody); }}><Languages size={14} /> Translate</button>
             </div>
             {aiOpen && <AiGenerate busy={!!aiBusy} onRun={(kind, topic) => runAI("gen", () => aiGenerate({ kind, topic, platforms, brandId: brandId || null }), (d) => { setBody(d); setTab("all"); })} more={REWRITES.slice(4)} onRewrite={(m) => runAI(m, () => aiRewrite({ text: body, mode: m, brandId: brandId || null }), setBody)} />}
-            <p className="muted mt-2 text-xs">AI output is a starting point — review and edit before publishing. Uses your brand voice from Settings.</p>
+            <p className="muted mt-2 text-xs">Review AI text before publishing.</p>
           </Card>
         )}
 
@@ -198,23 +199,23 @@ export function Composer({ accounts, media: initialMedia, campaigns, brands, ini
             </select>
             {recurrence && <input type="number" min={2} max={52} className="input w-20 py-1.5" value={recurrence.count} onChange={(e) => setRecurrence({ ...recurrence, count: Number(e.target.value) })} title="Number of occurrences" />}
           </div>
-          {needsApproval && <p className="mt-2 text-xs text-amber-600">This workspace requires approval — scheduling submits the post to an approver.</p>}
+          {needsApproval && <p className="mt-2 text-xs text-amber-700 dark:text-amber-400">This workspace requires approval — scheduling submits the post to an approver.</p>}
           <div className="mt-3 grid gap-2">
             {canSchedule && <button className="btn-primary" disabled={pending || !targets.length || !when || errors > 0} onClick={() => submit("schedule")}><Clock size={15} /> {needsApproval ? "Submit for approval" : initial.id && initial.status === "SCHEDULED" ? "Update schedule" : "Schedule"}</button>}
             {canPublish && !needsApproval && <button className="btn-secondary" disabled={pending || !targets.length || errors > 0} onClick={() => submit("publish_now")}><Send size={15} /> Publish now</button>}
             <button className="btn-ghost" disabled={pending} onClick={() => submit("draft")}><Save size={15} /> Save draft</button>
           </div>
-          {errors > 0 && <p className="mt-2 text-xs text-red-500">Fix {errors} issue{errors > 1 ? "s" : ""} below before publishing.</p>}
+          {touched && errors > 0 && <p className="mt-2 text-xs text-red-600 dark:text-red-400">{errors} issue{errors > 1 ? "s" : ""} to fix</p>}
         </Card>
         {msg && <Notice tone={msg.tone}>{msg.text}</Notice>}
-        {reports.length > 0 && (
+        {touched && reports.length > 0 && (
           <Card title="Checks">
             <ul className="space-y-2 text-sm">
               {reports.map((r) => (
                 <li key={r.accountId}>
                   <div className="flex items-center gap-1.5 font-medium"><PlatformBadge id={r.platform} size={16} /> {r.accountName}
-                    {r.issues.length === 0 && <CheckCircle2 size={14} className="text-emerald-500" />}</div>
-                  {r.issues.map((i, k) => <div key={k} className={cx("ml-6 text-xs", i.level === "error" ? "text-red-500" : "text-amber-600")}>{i.level === "error" ? "✕" : "!"} {i.message}</div>)}
+                    {r.issues.length === 0 && <CheckCircle2 size={14} className="text-emerald-700 dark:text-emerald-400" />}</div>
+                  {r.issues.map((i, k) => <div key={k} className={cx("ml-6 text-xs", i.level === "error" ? "text-red-600 dark:text-red-400" : "text-amber-700 dark:text-amber-400")}>{i.level === "error" ? "✕" : "!"} {i.message}</div>)}
                 </li>
               ))}
             </ul>
@@ -327,7 +328,7 @@ function Preview({ acc, body, title, link, media }: { acc: Acc; body: string; ti
       {!visualFirst && mediaEl && <div className="mt-2">{mediaEl}</div>}
       {link && !media.length && ["facebook", "linkedin", "x", "threads", "telegram", "reddit"].includes(p.id) && <div className="soft mt-2 truncate rounded-lg px-3 py-2 text-xs">🔗 {link}</div>}
       {p.id === "pinterest" && link && <div className="muted mt-1 truncate text-xs">→ {link}</div>}
-      <div className="muted mt-2 text-[10px]">Approximate preview — final rendering is controlled by {p.name}.</div>
+      
     </div>
   );
 }

@@ -36,15 +36,15 @@ export function InboxView({ convs, members, saved, me, filters, openId, can, unr
   useEffect(() => { const h = setInterval(() => { router.refresh(); if (active) load(active, true); }, 20_000); return () => clearInterval(h); }, [active, load, router]);
 
   return (
-    <div className="-m-4 grid h-[calc(100vh-57px)] md:-m-6 lg:grid-cols-[200px_340px_1fr]">
+    <div className="panel grid h-[calc(100vh-96px)] overflow-hidden lg:grid-cols-[200px_340px_1fr]">
       <aside className="line hidden overflow-y-auto border-r p-3 lg:block">
-        <div className="mb-2 text-xs font-semibold uppercase tracking-wide muted">Inbox {unreadCount > 0 && <span className="chip ml-1 bg-brand-500 text-white">{unreadCount}</span>}</div>
-        {FOLDERS.map(([k, l]) => <button key={k} className="nav-link w-full" data-active={filters.f === k} onClick={() => setParam("f", k)}>{l}</button>)}
-        <div className="mb-2 mt-4 text-xs font-semibold uppercase tracking-wide muted">Type</div>
-        {TYPES.map(([k, l]) => <button key={k} className="nav-link w-full" data-active={filters.type === k} onClick={() => setParam("type", k)}>{l}</button>)}
-        <div className="mb-2 mt-4 text-xs font-semibold uppercase tracking-wide muted">Network</div>
-        <button className="nav-link w-full" data-active={!filters.platform} onClick={() => setParam("platform", "")}>All networks</button>
-        {PLATFORM_LIST.filter((p) => p.caps.dms.status !== "unavailable" || p.caps.comments.status !== "unavailable").map((p) => <button key={p.id} className="nav-link w-full" data-active={filters.platform === p.id} onClick={() => setParam("platform", p.id)}><PlatformBadge id={p.id} size={16} /> {p.name}</button>)}
+        <div className="mb-2 flex items-center gap-2 px-2.5 font-display text-[17px] font-semibold">Inbox {unreadCount > 0 && <span className="rounded-full px-1.5 text-[11px] font-semibold leading-5 text-[#0E1F1B]" style={{ background: "var(--signal)" }}>{unreadCount}</span>}</div>
+        {FOLDERS.map(([k, l]) => <button key={k} className="tab-link w-full" data-active={filters.f === k} onClick={() => setParam("f", k)}>{l}</button>)}
+        <div className="muted mb-1 mt-5 px-2.5 text-[12px] font-medium">Type</div>
+        {TYPES.map(([k, l]) => <button key={k} className="tab-link w-full" data-active={filters.type === k} onClick={() => setParam("type", k)}>{l}</button>)}
+        <div className="muted mb-1 mt-5 px-2.5 text-[12px] font-medium">Network</div>
+        <button className="tab-link w-full" data-active={!filters.platform} onClick={() => setParam("platform", "")}>All networks</button>
+        {PLATFORM_LIST.filter((p) => p.caps.dms.status !== "unavailable" || p.caps.comments.status !== "unavailable").map((p) => <button key={p.id} className="tab-link w-full" data-active={filters.platform === p.id} onClick={() => setParam("platform", p.id)}><PlatformBadge id={p.id} size={16} /> {p.name}</button>)}
       </aside>
 
       <section className={cx("line flex min-h-0 flex-col border-r", active && "hidden lg:flex")}>
@@ -56,7 +56,7 @@ export function InboxView({ convs, members, saved, me, filters, openId, can, unr
           </div>
         </div>
         <ul className="flex-1 overflow-y-auto">
-          {convs.length === 0 && <Empty title="No conversations here" body="Messages and comments from connected accounts appear here as they arrive." />}
+          {convs.length === 0 && <Empty title="No conversations here" />}
           {convs.map((c) => (
             <li key={c.id}>
               <button onClick={() => { setActive(c.id); router.replace(`/inbox?${new URLSearchParams({ ...Object.fromEntries(params), c: c.id })}`, { scroll: false }); }}
@@ -64,10 +64,10 @@ export function InboxView({ convs, members, saved, me, filters, openId, can, unr
                 <Avatar src={c.contact?.avatarUrl} name={c.contact?.displayName ?? "?"} size={36} platform={c.account.platform} />
                 <div className="min-w-0 flex-1">
                   <div className="flex items-center gap-1.5"><span className={cx("truncate text-sm", c.unread && "font-semibold")}>{c.contact?.displayName ?? "Unknown"}</span>
-                    {c.priority && <Flag size={12} className="shrink-0 fill-red-500 text-red-500" />}<span className="muted ml-auto shrink-0 text-[11px]">{ago(c.lastMessageAt)}</span></div>
+                    {c.priority && <Flag size={12} className="shrink-0 fill-red-500 text-red-600 dark:text-red-400" />}<span className="muted ml-auto shrink-0 text-[11px]">{ago(c.lastMessageAt)}</span></div>
                   <div className="muted truncate text-[11px]">{c.kind === "dm" ? "DM" : c.kind} · {c.account.displayName}{c.assignee ? ` · ${c.assignee.user.name}` : ""}</div>
                   <div className={cx("mt-0.5 line-clamp-2 text-xs", c.unread ? "" : "muted")}>{c.lastMessagePreview}</div>
-                  <div className="mt-1 flex flex-wrap gap-1">{c.isDemo && <DemoBadge />}{c.tags.slice(0, 3).map((t) => <span key={t} className="chip soft">{t}</span>)}{c.awaitingReply && c.status !== "RESOLVED" && <span className="chip bg-amber-500/15 text-amber-600">needs reply</span>}</div>
+                  {(c.tags.length > 0 || (c.awaitingReply && c.status !== "RESOLVED")) && <div className="mt-1 flex flex-wrap items-center gap-1.5 text-[11.5px]">{c.awaitingReply && c.status !== "RESOLVED" && <span className="font-medium text-amber-700 dark:text-amber-400">Needs reply</span>}{c.tags.slice(0, 3).map((t) => <span key={t} className="chip soft">{t}</span>)}</div>}
                 </div>
                 {c.unread && <span className="mt-2 h-2 w-2 shrink-0 rounded-full bg-brand-500" />}
               </button>
@@ -77,7 +77,7 @@ export function InboxView({ convs, members, saved, me, filters, openId, can, unr
       </section>
 
       <section className={cx("flex min-h-0 flex-col", !active && "hidden lg:flex")}>
-        {!active ? <div className="flex flex-1 items-center justify-center"><Empty title="Select a conversation" body="Reply to messages and comments from every connected network without leaving Orbit." /></div>
+        {!active ? <div className="flex flex-1 items-center justify-center"><Empty title="Select a conversation" /></div>
           : loading && !thread ? <div className="muted p-6 text-sm">Loading…</div>
           : thread && <Thread key={thread.id} t={thread} members={members} saved={saved} me={me} can={can} onBack={() => setActive(undefined)} reload={() => { load(thread.id, true); router.refresh(); }} />}
       </section>
@@ -110,7 +110,7 @@ function Thread({ t, members, saved, me, can, onBack, reload }: { t: any; member
           <StatusBadge status={t.status} />
           <input className="input w-36 py-1 text-xs" placeholder="Search thread" value={search} onChange={(e) => setSearch(e.target.value)} />
           {can.reply && <>
-            <button className="btn-ghost p-2" title={t.priority ? "Remove priority" : "Mark priority"} onClick={() => act(() => flagsAction(t.id, { priority: !t.priority }))}><Flag size={15} className={t.priority ? "fill-red-500 text-red-500" : ""} /></button>
+            <button className="btn-ghost p-2" title={t.priority ? "Remove priority" : "Mark priority"} onClick={() => act(() => flagsAction(t.id, { priority: !t.priority }))}><Flag size={15} className={t.priority ? "fill-red-500 text-red-600 dark:text-red-400" : ""} /></button>
             <button className="btn-ghost p-2" title="Mark unread" onClick={() => act(() => flagsAction(t.id, { unread: true }))}><MailOpen size={15} /></button>
             {t.status !== "RESOLVED" ? <button className="btn-secondary py-1" onClick={() => act(() => statusAction(t.id, "RESOLVED"))}><CheckCircle2 size={14} /> Resolve</button> : <button className="btn-secondary py-1" onClick={() => act(() => statusAction(t.id, "OPEN"))}>Reopen</button>}
             <button className="btn-ghost p-2" title="Archive" onClick={() => act(() => statusAction(t.id, "ARCHIVED"))}><Archive size={15} /></button>
@@ -134,7 +134,7 @@ function Thread({ t, members, saved, me, can, onBack, reload }: { t: any; member
         </div>
         {can.reply && (
           <div className="line border-t p-3">
-            {sensitive && mode === "reply" && <div className="mb-2 flex items-center gap-1.5 text-xs text-amber-600"><ShieldAlert size={13} /> Sensitive topic (payment, legal or complaint). Review carefully before replying.</div>}
+            {sensitive && mode === "reply" && <div className="mb-2 flex items-center gap-1.5 text-xs text-amber-700 dark:text-amber-400"><ShieldAlert size={13} /> Sensitive topic (payment, legal or complaint). Review carefully before replying.</div>}
             {!canReply && <Notice tone="warn">Replying on {p.name} isn&apos;t supported by its API.</Notice>}
             {err && <div className="mb-2"><Notice tone="error">{err}</Notice></div>}
             {info && <div className="mb-2"><Notice tone="success">{info}</Notice></div>}

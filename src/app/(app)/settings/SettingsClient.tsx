@@ -50,7 +50,7 @@ export function SettingsClient({ user, workspace, brands, slots, prefs, canWorks
               <Field key={k as string} label={l as string}>{rows === 1 ? <input className="input" value={brandEdit[k as string]} onChange={(e) => setBrandEdit({ ...brandEdit, [k as string]: e.target.value })} required={k === "name"} /> : <textarea className="input" rows={rows as number} value={brandEdit[k as string]} onChange={(e) => setBrandEdit({ ...brandEdit, [k as string]: e.target.value })} />}</Field>))}
             <label className="flex items-center gap-2 text-sm"><input type="checkbox" checked={brandEdit.isDefault} onChange={(e) => setBrandEdit({ ...brandEdit, isDefault: e.target.checked })} /> Default brand for this workspace</label>
             <div className="flex gap-2 md:col-span-2"><button className="btn-primary" disabled={pending}>Save brand</button><button type="button" className="btn-secondary" onClick={() => setBrandEdit(null)}>Cancel</button>
-              {brandEdit.id && <button type="button" className="btn-ghost text-red-500" onClick={() => confirm("Delete this brand?") && run("brand", async () => { const r = await deleteBrand(brandEdit.id); if (r.ok) setBrandEdit(null); return r; }, "Deleted")}>Delete</button>}</div>
+              {brandEdit.id && <button type="button" className="btn-ghost text-red-600 dark:text-red-400" onClick={() => confirm("Delete this brand?") && run("brand", async () => { const r = await deleteBrand(brandEdit.id); if (r.ok) setBrandEdit(null); return r; }, "Deleted")}>Delete</button>}</div>
           </form>)}
         <M k="brand" />
       </Card>}
@@ -68,7 +68,7 @@ export function SettingsClient({ user, workspace, brands, slots, prefs, canWorks
         <form id="notifications" onSubmit={(e) => { e.preventDefault(); const f = new FormData(e.currentTarget); run("prefs", () => saveNotificationPrefs(prefs.map((p: any) => ({ type: p.type, inApp: f.get(`${p.type}-app`) === "on", email: f.get(`${p.type}-email`) === "on" })))); }}>
           <table className="table w-full"><thead><tr><th>Event</th><th className="text-center">In-app</th><th className="text-center">Email</th></tr></thead><tbody>
             {prefs.map((p: any) => <tr key={p.type}><td>{p.label}</td><td className="text-center"><input type="checkbox" name={`${p.type}-app`} defaultChecked={p.inApp} /></td><td className="text-center"><input type="checkbox" name={`${p.type}-email`} defaultChecked={p.email} /></td></tr>)}</tbody></table>
-          <p className="muted mt-2 text-xs">Email is delivered when the server has RESEND_API_KEY configured. Browser push notifications aren&apos;t available yet.</p>
+          <p className="muted mt-2 text-xs">Email needs RESEND_API_KEY on the server.</p>
           <button className="btn-primary mt-2" disabled={pending}>Save preferences</button><M k="prefs" />
         </form>
       </Card>
@@ -77,7 +77,7 @@ export function SettingsClient({ user, workspace, brands, slots, prefs, canWorks
         <div id="workspaces" />
         {canCreateWs ? <form className="flex gap-2" onSubmit={(e) => { e.preventDefault(); const f = new FormData(e.currentTarget); run("nws", () => createWorkspace(String(f.get("name")))); }}><input name="name" className="input" placeholder="Client or brand name" required /><button className="btn-primary" disabled={pending}>Create workspace</button></form>
           : <p className="muted text-sm">Ask an owner or admin to create workspaces.</p>}
-        <p className="muted mt-2 text-xs">Each workspace has its own accounts, media, calendar, inbox, analytics and team. Switch from the top of the sidebar.</p><M k="nws" />
+        <p className="muted mt-2 text-xs">Each workspace keeps its own accounts, content and team.</p><M k="nws" />
       </Card>
 
       <Card title="Contact support">
@@ -91,10 +91,10 @@ export function SettingsClient({ user, workspace, brands, slots, prefs, canWorks
       <Card title="Data & privacy">
         <div className="flex flex-wrap gap-2">
           {(isOwner || canWorkspace) && <a href="/api/export" className="btn-secondary">Export workspace data (JSON)</a>}
-          {isOwner && <button className="btn-secondary text-red-500" onClick={() => { const n = prompt(`Type "${workspace.name}" to permanently delete this workspace, its posts, media, conversations and connected accounts.`); if (n) run("delws", () => deleteWorkspace(n)); }}>Delete workspace</button>}
-          <button className="btn-ghost text-red-500" onClick={() => { const p = prompt("Enter your password to permanently delete your Orbit account."); if (p) run("delme", () => deleteMyAccount(p)); }}>Delete my account</button>
+          {isOwner && <button className="btn-secondary text-red-600 dark:text-red-400" onClick={() => { const n = prompt(`Type "${workspace.name}" to permanently delete this workspace, its posts, media, conversations and connected accounts.`); if (n) run("delws", () => deleteWorkspace(n)); }}>Delete workspace</button>}
+          <button className="btn-ghost text-red-600 dark:text-red-400" onClick={() => { const p = prompt("Enter your password to permanently delete your Orbit account."); if (p) run("delme", () => deleteMyAccount(p)); }}>Delete my account</button>
         </div>
-        <p className="muted mt-2 text-xs">Exports never include access tokens. Deleting removes data from Orbit; content already published stays on the networks.</p>
+        <p className="muted mt-2 text-xs">Exports never include access tokens. Published posts stay on the networks.</p>
         <M k="delws" /><M k="delme" />
       </Card>
     </div>

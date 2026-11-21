@@ -77,7 +77,7 @@ export function Uploader({ onUploaded, folderId, campaignId, compact }: { onUplo
       </div>
       {jobs.map((j) => (
         <div key={j.name} className="mt-2 text-xs">
-          <div className="flex justify-between"><span className="truncate">{j.name}</span><span className={j.error ? "text-red-500" : "muted"}>{j.error ?? `${j.pct}%`}</span></div>
+          <div className="flex justify-between"><span className="truncate">{j.name}</span><span className={j.error ? "text-red-600 dark:text-red-400" : "muted"}>{j.error ?? `${j.pct}%`}</span></div>
           {!j.error && <div className="soft mt-1 h-1.5 overflow-hidden rounded-full"><div className="h-full bg-brand-500 transition-all" style={{ width: `${j.pct}%` }} /></div>}
         </div>
       ))}

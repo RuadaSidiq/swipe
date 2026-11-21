@@ -59,12 +59,12 @@ export function CalendarView({ items, accounts, campaigns, slots, tz, initialVie
       <div className="flex flex-wrap items-center gap-2">
         <div className="flex gap-1">{(["month", "week", "day", "list", "campaign"] as View[]).map((v) => <button key={v} onClick={() => setView(v)} className={cx("btn py-1.5 capitalize", view === v ? "soft font-medium" : "muted")}>{v}</button>)}</div>
         <div className="flex items-center gap-1"><button className="btn-ghost p-1.5" onClick={() => nav(-1)} aria-label="Previous"><ChevronLeft size={16} /></button><button className="btn-secondary py-1" onClick={() => setAnchor(toZonedTime(new Date(), tz))}>Today</button><button className="btn-ghost p-1.5" onClick={() => nav(1)} aria-label="Next"><ChevronRight size={16} /></button></div>
-        <div className="font-semibold">{label}</div>
+        <div className="font-display text-[17px] font-semibold">{label} <span className="muted ml-1 font-sans text-xs font-normal">{tz}</span></div>
         <div className="flex-1" />
-        <select className="input w-36 py-1.5" value={fPlatform} onChange={(e) => setFP(e.target.value)}><option value="">All networks</option>{[...new Set(accounts.map((a) => a.platform))].map((p) => <option key={p} value={p}>{p}</option>)}</select>
-        <select className="input w-40 py-1.5" value={fAccount} onChange={(e) => setFA(e.target.value)}><option value="">All accounts</option>{accounts.map((a) => <option key={a.id} value={a.id}>{a.displayName}</option>)}</select>
-        <select className="input w-40 py-1.5" value={fCampaign} onChange={(e) => setFC(e.target.value)}><option value="">All campaigns</option>{campaigns.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}</select>
-        <select className="input w-36 py-1.5" value={fStatus} onChange={(e) => setFS(e.target.value)}><option value="">All statuses</option><option value="DRAFT">Drafts</option><option value="PENDING_APPROVAL">Awaiting approval</option><option value="SCHEDULED">Scheduled</option><option value="PUBLISHED">Published</option><option value="FAILED">Failed</option></select>
+        <select className="input w-auto max-w-[11rem] py-1.5" value={fPlatform} onChange={(e) => setFP(e.target.value)}><option value="">All networks</option>{[...new Set(accounts.map((a) => a.platform))].map((p) => <option key={p} value={p}>{p}</option>)}</select>
+        <select className="input w-auto max-w-[11rem] py-1.5" value={fAccount} onChange={(e) => setFA(e.target.value)}><option value="">All accounts</option>{accounts.map((a) => <option key={a.id} value={a.id}>{a.displayName}</option>)}</select>
+        <select className="input w-auto max-w-[11rem] py-1.5" value={fCampaign} onChange={(e) => setFC(e.target.value)}><option value="">All campaigns</option>{campaigns.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}</select>
+        <select className="input w-auto max-w-[11rem] py-1.5" value={fStatus} onChange={(e) => setFS(e.target.value)}><option value="">All statuses</option><option value="DRAFT">Drafts</option><option value="PENDING_APPROVAL">Awaiting approval</option><option value="SCHEDULED">Scheduled</option><option value="PUBLISHED">Published</option><option value="FAILED">Failed</option></select>
       </div>
       {err && <Notice tone="error">{err}</Notice>}
       {pending && <div className="muted text-xs">Saving…</div>}

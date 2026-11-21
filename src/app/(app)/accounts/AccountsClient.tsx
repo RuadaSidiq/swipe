@@ -28,8 +28,8 @@ export function AccountsClient({ accounts, brands, platforms, demoMode, canConne
   return (
     <div className="space-y-6">
       {msg && <Notice tone={msg.tone}>{msg.text}</Notice>}
-      <Card title={`Your accounts (${live.length})`} pad={false}>
-        {live.length === 0 ? <Empty title="No accounts connected yet" body="Connect your first network below to start publishing and receiving messages." /> : (
+      <Card title={`Connected (${live.length})`} pad={false}>
+        {live.length === 0 ? <Empty title="No accounts connected yet" /> : (
           <ul>
             {live.map((a) => {
               const p = platforms.find((x) => x.id === a.platform)!;
@@ -37,13 +37,13 @@ export function AccountsClient({ accounts, brands, platforms, demoMode, canConne
                 <li key={a.id} className="line flex flex-wrap items-center gap-3 border-t px-4 py-3 first:border-t-0">
                   <Avatar src={a.avatarUrl} name={a.displayName} size={40} platform={a.platform} />
                   <div className="min-w-0 flex-1">
-                    <div className="flex flex-wrap items-center gap-2 font-medium">{a.displayName} {a.isDemo && <DemoBadge />} {a.isDefault && <span className="chip bg-brand-500/15 text-brand-500"><Star size={10} /> Default</span>}</div>
-                    <div className="muted text-xs">{p.name} · {a.accountType}{a.username ? ` · @${a.username.replace(/^@/, "")}` : ""}{a.lastSyncedAt ? ` · synced ${new Date(a.lastSyncedAt).toLocaleString()}` : ""}</div>
-                    {a.statusMessage && a.status !== "CONNECTED" && <div className="mt-1 text-xs text-red-500">{a.statusMessage}</div>}
-                    {a.scopes.length > 0 && !a.isDemo && <details className="mt-1 text-xs"><summary className="muted cursor-pointer">Permissions granted ({a.scopes.length})</summary><div className="muted mt-1 break-words">{a.scopes.join(", ")}</div></details>}
+                    <div className="flex flex-wrap items-center gap-2 font-medium">{a.displayName}{a.isDefault && <Star size={13} className="fill-[var(--signal)] text-[var(--signal)]" aria-label="Default" />}</div>
+                    <div className="muted text-xs" title={a.lastSyncedAt ? `Synced ${new Date(a.lastSyncedAt).toLocaleString()}` : undefined}>{p.name}{a.username ? ` @${a.username.replace(/^@/, "")}` : ""}</div>
+                    {a.statusMessage && a.status !== "CONNECTED" && <div className="mt-1 text-xs text-red-600 dark:text-red-400">{a.statusMessage}</div>}
+                    {a.scopes.length > 0 && !a.isDemo && <details className="mt-1 text-xs"><summary className="muted cursor-pointer">{a.scopes.length} permissions</summary><div className="muted mt-1 break-words">{a.scopes.join(", ")}</div></details>}
                   </div>
                   <StatusBadge status={a.status} />
-                  {canManage && (
+                  {canManage && brands.length > 1 && (
                     <select className="input w-40 py-1.5 text-xs" value={a.brandId ?? ""} onChange={(e) => run(() => updateAccount(a.id, { brandId: e.target.value || null }), () => "Brand updated")} aria-label="Brand">
                       <option value="">No brand</option>{brands.map((b) => <option key={b.id} value={b.id}>{b.name}</option>)}
                     </select>
@@ -53,7 +53,7 @@ export function AccountsClient({ accounts, brands, platforms, demoMode, canConne
                     {canManage && <button className="btn-ghost p-2" title={a.isDefault ? "Unset default" : "Set as default publishing account"} disabled={pending} onClick={() => run(() => updateAccount(a.id, { isDefault: !a.isDefault }), () => "Updated")}><Star size={15} /></button>}
                     {canManage && !a.isDemo && p.caps.analytics.status !== "unavailable" && <button className="btn-ghost p-2" title="Sync now" disabled={pending} onClick={() => run(() => syncAccount(a.id), (n) => `Synced ${n} metrics`)}><RefreshCw size={15} /></button>}
                     {canConnect && a.status !== "CONNECTED" && !a.isDemo && (p.connect === "oauth" ? <a className="btn-primary py-1.5" href={`/api/oauth/${a.platform}/start`}>Reconnect</a> : <button className="btn-primary py-1.5" onClick={() => setModal(p)}>Reconnect</button>)}
-                    {canManage && <button className="btn-ghost p-2 text-red-500" title="Disconnect & revoke" disabled={pending} onClick={() => confirm(`Disconnect ${a.displayName}? Scheduled posts to it will be marked failed.`) && run(() => disconnectAccount(a.id), (r) => `Disconnected: ${r}`)}><Unplug size={15} /></button>}
+                    {canManage && <button className="btn-ghost p-2 text-red-600 dark:text-red-400" title="Disconnect & revoke" disabled={pending} onClick={() => confirm(`Disconnect ${a.displayName}? Scheduled posts to it will be marked failed.`) && run(() => disconnectAccount(a.id), (r) => `Disconnected: ${r}`)}><Unplug size={15} /></button>}
                   </div>
                 </li>
               );
@@ -63,13 +63,13 @@ export function AccountsClient({ accounts, brands, platforms, demoMode, canConne
       </Card>
 
       {canConnect && (
-        <Card title="Connect a network">
+        <Card title="Add an account">
           <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
             {platforms.map((p) => (
               <div key={p.id} className="line rounded-xl border p-3">
                 <div className="flex items-center gap-2"><PlatformBadge id={p.id} size={28} /><div className="font-medium">{p.name}</div>
                   <button className="btn-ghost ml-auto p-1.5" onClick={() => setDetails(p)} title="What's supported"><Info size={15} /></button></div>
-                <div className="muted mt-2 min-h-[2.5rem] text-xs">{p.configured ? (p.id === "snapchat" ? "Partner-only publishing API." : p.connect === "oauth" ? "Sign in with the official app." : p.connect === "bot_token" ? "Connect a bot to your channel." : "Connect with a Cloud API token.") : `Not configured on this server (${p.requiredEnv.join(", ")}).`}</div>
+                <div className="muted mt-2 min-h-[2.25rem] text-xs">{p.configured ? (p.id === "snapchat" ? "Partner access only" : "") : "Not set up on this server"}</div>
                 <div className="mt-2 flex gap-2">
                   {p.configured && (p.connect === "oauth"
                     ? <a className="btn-primary flex-1 py-1.5" href={`/api/oauth/${p.id}/start`}><Plug size={14} /> Connect</a>
@@ -88,7 +88,7 @@ export function AccountsClient({ accounts, brands, platforms, demoMode, canConne
             <li key={a.id} className="line flex items-center gap-3 border-t px-4 py-2.5 first:border-t-0">
               <Avatar src={a.avatarUrl} name={a.displayName} size={28} platform={a.platform} /><div className="flex-1 text-sm">{a.displayName}</div>
               {canConnect && platforms.find((p) => p.id === a.platform)?.connect === "oauth" && <a className="btn-secondary py-1" href={`/api/oauth/${a.platform}/start`}>Reconnect</a>}
-              {canManage && <button className="btn-ghost p-2 text-red-500" title="Delete permanently (removes its post history)" onClick={() => confirm("Delete this account and its publishing history?") && run(() => removeAccount(a.id), () => "Removed")}><Trash2 size={15} /></button>}
+              {canManage && <button className="btn-ghost p-2 text-red-600 dark:text-red-400" title="Delete permanently (removes its post history)" onClick={() => confirm("Delete this account and its publishing history?") && run(() => removeAccount(a.id), () => "Removed")}><Trash2 size={15} /></button>}
             </li>))}</ul>
         </Card>
       )}
