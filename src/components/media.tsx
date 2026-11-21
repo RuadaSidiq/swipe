@@ -13,19 +13,40 @@ export function Thumb({ a, className }: { a: Pick<Asset, "id" | "kind" | "filena
 
 export const fmtBytes = (n: number) => (n > 1e9 ? `${(n / 1e9).toFixed(1)} GB` : n > 1e6 ? `${(n / 1e6).toFixed(1)} MB` : `${Math.round(n / 1e3)} KB`);
 
-/** XHR upload so we can show real progress. */
-export function uploadFile(file: File, opts: { folderId?: string | null; campaignId?: string; onProgress?: (pct: number) => void }): Promise<Asset> {
+function xhr(method: string, url: string, body: Document | XMLHttpRequestBodyInit, headers: Record<string, string>, onProgress?: (pct: number) => void): Promise<{ status: number; text: string }> {
   return new Promise((resolve, reject) => {
-    const fd = new FormData(); fd.set("file", file);
-    if (opts.folderId) fd.set("folderId", opts.folderId);
-    if (opts.campaignId) fd.set("campaignId", opts.campaignId);
-    const xhr = new XMLHttpRequest();
-    xhr.open("POST", "/api/media/upload");
-    xhr.upload.onprogress = (e) => e.lengthComputable && opts.onProgress?.(Math.round((e.loaded / e.total) * 100));
-    xhr.onload = () => { try { const r = JSON.parse(xhr.responseText); if (xhr.status < 300) resolve(r.asset); else reject(new Error(r.error ?? "Upload failed")); } catch { reject(new Error(`Upload failed (HTTP ${xhr.status})`)); } };
-    xhr.onerror = () => reject(new Error("Network error during upload"));
-    xhr.send(fd);
+    const x = new XMLHttpRequest();
+    x.open(method, url);
+    for (const [k, v] of Object.entries(headers)) x.setRequestHeader(k, v);
+    x.upload.onprogress = (e) => e.lengthComputable && onProgress?.(Math.round((e.loaded / e.total) * 100));
+    x.onload = () => resolve({ status: x.status, text: x.responseText });
+    x.onerror = () => reject(new Error("Network error during upload"));
+    x.send(body);
   });
+}
+const parse = (t: string) => { try { return JSON.parse(t); } catch { return {}; } };
+
+/** Uploads straight to cloud storage when it's configured (no size limit from the app server), otherwise through the app. */
+export async function uploadFile(file: File, opts: { folderId?: string | null; campaignId?: string; onProgress?: (pct: number) => void }): Promise<Asset> {
+  const init = await fetch("/api/media/upload-url", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ size: file.size, contentType: file.type }) });
+  const plan = await init.json().catch(() => ({}));
+  if (!init.ok) throw new Error(plan.error ?? "Upload failed");
+  if (plan.mode === "s3") {
+    const put = await xhr("PUT", plan.url, file, { "Content-Type": file.type }, opts.onProgress);
+    if (put.status >= 300) throw new Error(`Upload to storage failed (HTTP ${put.status}). Check the bucket's CORS settings.`);
+    const done = await fetch("/api/media/complete", { method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ key: plan.key, exp: plan.exp, token: plan.token, filename: file.name, folderId: opts.folderId ?? null, campaignId: opts.campaignId ?? null }) });
+    const r = await done.json().catch(() => ({}));
+    if (!done.ok) throw new Error(r.error ?? "Upload failed");
+    return r.asset;
+  }
+  const fd = new FormData(); fd.set("file", file);
+  if (opts.folderId) fd.set("folderId", opts.folderId);
+  if (opts.campaignId) fd.set("campaignId", opts.campaignId);
+  const res = await xhr("POST", "/api/media/upload", fd, {}, opts.onProgress);
+  const r = parse(res.text);
+  if (res.status >= 300) throw new Error(r.error ?? (res.status === 413 ? "File too large for this server. Configure cloud storage (S3/R2) for large uploads." : `Upload failed (HTTP ${res.status})`));
+  return r.asset;
 }
 
 export function Uploader({ onUploaded, folderId, campaignId, compact }: { onUploaded: (a: Asset) => void; folderId?: string | null; campaignId?: string; compact?: boolean }) {

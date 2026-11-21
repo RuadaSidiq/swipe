@@ -16,7 +16,17 @@ npm run build && npm start    # web app on :3000
 npm run worker                # background worker (publishing, automations, metrics, token refresh)
 ```
 
-The worker is required in production. Without it, scheduled posts are never sent. You can run several worker instances: jobs are claimed with `FOR UPDATE SKIP LOCKED`, so two workers never pick up the same job. `/api/health` reports DB status and any overdue publishes.
+The worker is required in production (or, on serverless hosts, the cron endpoint below). Without it, scheduled posts are never sent. You can run several worker instances: jobs are claimed with `FOR UPDATE SKIP LOCKED`, so two workers never pick up the same job. `/api/health` reports DB status and any overdue publishes.
+
+## Deploying to Vercel
+
+1. **Database:** create a Postgres database (Neon works well). Set `DATABASE_URL` to the *pooled* connection string and `DIRECT_URL` to the *direct* one.
+2. **Media storage:** Vercel has no persistent disk, so set `S3_BUCKET`, `S3_ENDPOINT`, `S3_ACCESS_KEY_ID`, `S3_SECRET_ACCESS_KEY` (Cloudflare R2: `S3_REGION=auto`, endpoint `https://<account-id>.r2.cloudflarestorage.com`). Browsers upload straight to the bucket, so add a CORS rule allowing `PUT` and `GET` from your site's origin with the `Content-Type` header.
+3. **Environment variables:** copy everything from `.env.example` into the Vercel project, with `APP_URL` set to the deployed URL and `DEMO_MODE=false` for real use.
+4. **Background jobs:** there's no long-running worker on Vercel. `/api/cron/tick` runs every job (publishing, automations, inbox polling, metrics, token refresh) when called with `Authorization: Bearer $CRON_SECRET`. Call it every minute:
+   - **Vercel Pro:** add `"crons": [{ "path": "/api/cron/tick", "schedule": "* * * * *" }]` to `vercel.json`. Vercel sends the secret automatically.
+   - **Vercel Hobby** (cron limited to once a day): use a free external scheduler such as cron-job.org to `GET https://<your-site>/api/cron/tick` every minute with the `Authorization` header.
+5. Deploy. The build runs `prisma migrate deploy` first.
 
 ## What's built
 

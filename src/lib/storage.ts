@@ -3,7 +3,7 @@ import path from "node:path";
 import { hmac, safeEqual } from "./crypto";
 import { env } from "./env";
 
-import { DeleteObjectCommand, GetObjectCommand, PutObjectCommand, S3Client } from "@aws-sdk/client-s3";
+import { DeleteObjectCommand, GetObjectCommand, HeadObjectCommand, PutObjectCommand, S3Client } from "@aws-sdk/client-s3";
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 
 /**
@@ -43,6 +43,20 @@ export async function deleteObject(key: string) {
   if (usesS3()) { await s3().send(new DeleteObjectCommand({ Bucket: bucket(), Key: key })); return; }
   await fs.rm(storagePath(key), { force: true });
 }
+/** Presigned PUT so browsers upload straight to the bucket (bypasses serverless request-size limits). */
+export async function presignedPut(key: string, contentType: string, ttlSec = 900) {
+  return getSignedUrl(s3(), new PutObjectCommand({ Bucket: bucket(), Key: key, ContentType: contentType }), { expiresIn: ttlSec });
+}
+export async function headObject(key: string) {
+  const h = await s3().send(new HeadObjectCommand({ Bucket: bucket(), Key: key }));
+  return { size: Number(h.ContentLength ?? 0), etag: (h.ETag ?? "").replace(/"/g, "") };
+}
+/** Byte range of an object (inclusive end), used to inspect large uploads without downloading them. */
+export async function getRange(key: string, start: number, end: number): Promise<Buffer> {
+  const r = await s3().send(new GetObjectCommand({ Bucket: bucket(), Key: key, Range: `bytes=${start}-${end}` }));
+  return Buffer.from(await r.Body!.transformToByteArray());
+}
+
 /** Short-lived direct URL to the object (S3 only). */
 export async function presignedGet(key: string, ttlSec = 3600) {
   return getSignedUrl(s3(), new GetObjectCommand({ Bucket: bucket(), Key: key }), { expiresIn: ttlSec });
