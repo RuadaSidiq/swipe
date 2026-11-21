@@ -20,7 +20,7 @@ The worker is required in production (or, on serverless hosts, the cron endpoint
 
 ## Deploying to Vercel
 
-1. **Database:** create a Postgres database (Neon works well). Set `DATABASE_URL` to the *pooled* connection string and `DIRECT_URL` to the *direct* one.
+1. **Database:** create a Postgres database (Neon works well). Set `DATABASE_URL` to the *pooled* connection string and `DATABASE_URL_UNPOOLED` to the *direct* one (Vercel's Neon add-on sets both automatically).
 2. **Media storage:** Vercel has no persistent disk, so set `S3_BUCKET`, `S3_ENDPOINT`, `S3_ACCESS_KEY_ID`, `S3_SECRET_ACCESS_KEY` (Cloudflare R2: `S3_REGION=auto`, endpoint `https://<account-id>.r2.cloudflarestorage.com`). Browsers upload straight to the bucket, so add a CORS rule allowing `PUT` and `GET` from your site's origin with the `Content-Type` header.
 3. **Environment variables:** copy everything from `.env.example` into the Vercel project, with `APP_URL` set to the deployed URL and `DEMO_MODE=false` for real use.
 4. **Background jobs:** there's no long-running worker on Vercel. `/api/cron/tick` runs every job (publishing, automations, inbox polling, metrics, token refresh) when called with `Authorization: Bearer $CRON_SECRET`. Call it every minute:
