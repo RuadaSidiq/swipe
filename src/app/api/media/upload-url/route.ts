@@ -11,7 +11,11 @@ import { EXT, MAX_UPLOAD_BYTES } from "@/lib/mediaIngest";
 export async function POST(req: Request) {
   const ctx = await requireCtx();
   if (!ctx.can("media.manage") && !ctx.can("posts.create")) return NextResponse.json({ error: "You don't have permission to upload media." }, { status: 403 });
-  if (!usesS3()) return NextResponse.json({ mode: "direct" });
+  if (!usesS3()) {
+    // Serverless hosts (Vercel) have no persistent disk, so local storage would silently lose files.
+    if (process.env.VERCEL) return NextResponse.json({ error: "Media uploads aren't available yet: cloud storage (S3/R2) hasn't been configured for this site." }, { status: 503 });
+    return NextResponse.json({ mode: "direct" });
+  }
   if (!(await rateLimit(`upload:${ctx.user.id}`, 120, 3600)).ok) return NextResponse.json({ error: "Upload limit reached. Try again later." }, { status: 429 });
   const parsed = z.object({ size: z.number().int().positive(), contentType: z.string() }).safeParse(await req.json().catch(() => null));
   if (!parsed.success) return NextResponse.json({ error: "Invalid upload request." }, { status: 400 });

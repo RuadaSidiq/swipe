@@ -12,6 +12,7 @@ export async function POST(req: Request) {
   const ctx = await requireCtx();
   if (!ctx.can("media.manage") && !ctx.can("posts.create")) return NextResponse.json({ error: "You don't have permission to upload media." }, { status: 403 });
   if (!(await rateLimit(`upload:${ctx.user.id}`, 120, 3600)).ok) return NextResponse.json({ error: "Upload limit reached. Try again later." }, { status: 429 });
+  if (process.env.VERCEL && !process.env.S3_BUCKET) return NextResponse.json({ error: "Media uploads aren't available yet: cloud storage (S3/R2) hasn't been configured for this site." }, { status: 503 });
   const fd = await req.formData();
   const file = fd.get("file");
   if (!(file instanceof File)) return NextResponse.json({ error: "No file received." }, { status: 400 });
