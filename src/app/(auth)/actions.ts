@@ -7,7 +7,9 @@ import { rateLimit } from "@/lib/ratelimit";
 import { audit } from "@/lib/audit";
 import { createOrganizationWithWorkspace } from "@/lib/workspace";
 import { env } from "@/lib/env";
-import { sha256 } from "@/lib/crypto";
+import { randomToken, sha256, decrypt } from "@/lib/crypto";
+import { cookies } from "next/headers";
+import { verifyTotp } from "@/lib/totp";
 
 export type FormState = { error?: string } | undefined;
 
@@ -49,6 +51,14 @@ export async function login(_: FormState, fd: FormData): Promise<FormState> {
     return { error: "Incorrect email or password." };
   }
   await db.user.update({ where: { id: user.id }, data: { failedLogins: 0, lockedUntil: null, isPlatformAdmin: user.isPlatformAdmin || env.adminEmails.includes(email) } });
+  if (user.totpEnabledAt) {
+    // Password is right, but a second factor is required before a session exists.
+    const token = randomToken(32);
+    await db.pendingLogin.deleteMany({ where: { OR: [{ userId: user.id }, { expiresAt: { lt: new Date() } }] } });
+    await db.pendingLogin.create({ data: { id: sha256(token), userId: user.id, next: next.startsWith("/") && !next.startsWith("//") ? next : null, expiresAt: new Date(Date.now() + 5 * 60_000) } });
+    (await cookies()).set("orbit_2fa", token, { httpOnly: true, secure: env.isProd, sameSite: "lax", path: "/", maxAge: 300 });
+    redirect("/login/2fa");
+  }
   await createSession(user.id);
   await audit(null, "user.login", { targetType: "user", targetId: user.id, ip });
   redirect(next.startsWith("/") && !next.startsWith("//") ? next : "/dashboard");
@@ -81,4 +91,28 @@ export async function createFirstWorkspace(fd: FormData) {
   const ws = await createOrganizationWithWorkspace(s.userId, name, name, String(fd.get("timezone") ?? "UTC"));
   await db.session.update({ where: { id: s.id }, data: { workspaceId: ws.id } });
   redirect("/dashboard?welcome=1");
+}
+
+export async function verifySecondFactor(_: FormState, fd: FormData): Promise<FormState> {
+  const c = await cookies();
+  const token = c.get("orbit_2fa")?.value;
+  const pending = token ? await db.pendingLogin.findUnique({ where: { id: sha256(token) } }) : null;
+  if (!pending || pending.expiresAt < new Date()) return { error: "Your sign-in expired. Please sign in again." };
+  if (pending.attempts >= 5) { await db.pendingLogin.delete({ where: { id: pending.id } }); return { error: "Too many incorrect codes. Please sign in again." }; }
+  const user = await db.user.findUniqueOrThrow({ where: { id: pending.userId } });
+  const code = String(fd.get("code") ?? "").trim();
+  let ok = false;
+  if (/^\d{6}$/.test(code.replace(/\s/g, "")) && user.totpSecretEnc) {
+    const step = verifyTotp(decrypt(user.totpSecretEnc), code);
+    if (step !== null && step > (user.totpLastStep ?? -1)) { ok = true; await db.user.update({ where: { id: user.id }, data: { totpLastStep: step } }); }
+  } else if (code) {
+    const h = sha256(code.toLowerCase());
+    if (user.recoveryCodes.includes(h)) { ok = true; await db.user.update({ where: { id: user.id }, data: { recoveryCodes: user.recoveryCodes.filter((x) => x !== h) } }); await audit(null, "user.recovery_code_used", { targetType: "user", targetId: user.id }); }
+  }
+  if (!ok) { await db.pendingLogin.update({ where: { id: pending.id }, data: { attempts: { increment: 1 } } }); return { error: "That code isn't valid. Check your authenticator app and try again." }; }
+  await db.pendingLogin.delete({ where: { id: pending.id } });
+  c.delete("orbit_2fa");
+  await createSession(user.id);
+  await audit(null, "user.login", { targetType: "user", targetId: user.id, ip: await clientIp(), detail: { mfa: true } });
+  redirect(pending.next ?? "/dashboard");
 }

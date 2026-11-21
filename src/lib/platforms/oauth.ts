@@ -84,7 +84,7 @@ const PROVIDERS: Partial<Record<PlatformId, OAuthProvider>> = {
     },
   },
   x: {
-    authorizeUrl: "https://x.com/i/oauth2/authorize", scopes: ["tweet.read", "tweet.write", "users.read", "offline.access"], pkce: true, clientId: () => process.env.X_CLIENT_ID,
+    authorizeUrl: "https://x.com/i/oauth2/authorize", scopes: ["tweet.read", "tweet.write", "users.read", "media.write", "offline.access"], pkce: true, clientId: () => process.env.X_CLIENT_ID,
     async exchange(code, redirect, verifier) {
       const t = await api("https://api.x.com/2/oauth2/token", { method: "POST", headers: { Authorization: basic(process.env.X_CLIENT_ID, process.env.X_CLIENT_SECRET) },
         form: { grant_type: "authorization_code", code, redirect_uri: redirect, code_verifier: verifier!, client_id: process.env.X_CLIENT_ID! } }, "X");
@@ -96,7 +96,7 @@ const PROVIDERS: Partial<Record<PlatformId, OAuthProvider>> = {
   },
   youtube: {
     authorizeUrl: "https://accounts.google.com/o/oauth2/v2/auth", clientId: () => process.env.GOOGLE_CLIENT_ID,
-    scopes: ["https://www.googleapis.com/auth/youtube.upload", "https://www.googleapis.com/auth/youtube.readonly"], extra: { access_type: "offline", prompt: "consent", include_granted_scopes: "true" },
+    scopes: ["https://www.googleapis.com/auth/youtube.upload", "https://www.googleapis.com/auth/youtube.readonly", "https://www.googleapis.com/auth/youtube.force-ssl"], extra: { access_type: "offline", prompt: "consent", include_granted_scopes: "true" },
     async exchange(code, redirect) {
       const t = await api("https://oauth2.googleapis.com/token", { method: "POST", form: { grant_type: "authorization_code", code, redirect_uri: redirect, client_id: process.env.GOOGLE_CLIENT_ID!, client_secret: process.env.GOOGLE_CLIENT_SECRET! } }, "Google");
       const ch = await api("https://www.googleapis.com/youtube/v3/channels?part=snippet&mine=true", { headers: { Authorization: `Bearer ${t.access_token}` } }, "YouTube");

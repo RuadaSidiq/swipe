@@ -61,7 +61,6 @@ export function validateVersion(platformId: PlatformId, v: DraftVersion): Issue[
   if (p.id === "pinterest" && !v.options?.boardId) err("Pinterest: choose a board.");
   if (p.id === "reddit" && !v.options?.subreddit) err("Reddit: choose a subreddit.");
   if (p.id === "tiktok") warn("TikTok: posts are private (SELF_ONLY) until your TikTok app passes audit.");
-  if (p.id === "x" && v.media.length) err("X: Orbit's X adapter publishes text only for now. Remove the media for this destination.");
   if (p.id === "linkedin" && /#\w+/.test(v.body) && (v.body.match(/#/g) ?? []).length > 5) warn("LinkedIn: more than 5 hashtags tends to reduce reach.");
   return out;
 }

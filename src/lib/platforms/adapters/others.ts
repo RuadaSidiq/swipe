@@ -1,4 +1,3 @@
-import fs from "node:fs/promises";
 import { api, PlatformError } from "../http";
 import type { Adapter, AdapterAccount } from "../types";
 
@@ -11,9 +10,21 @@ const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 // ── X ──
 export const x: Adapter = {
   async publish(acc, input) {
-    if (input.media.length) throw new PlatformError("X: media upload isn't supported by this adapter yet");
+    if (input.media.some((m) => m.kind === "video")) throw new PlatformError("X: video upload isn't supported by this adapter yet");
+    const mediaIds: string[] = [];
+    for (const m of input.media.slice(0, 4)) {
+      // Single-request upload (images ≤ 5 MB); requires the media.write scope.
+      const up = await api("https://api.x.com/2/media/upload", { method: "POST", headers: bearer(acc),
+        json: { media: (await m.read()).toString("base64"), media_category: m.kind === "gif" ? "tweet_gif" : "tweet_image" } }, "X media");
+      const id = up.data?.id ?? up.media_id_string;
+      if (!id) throw new PlatformError("X: media upload returned no id", { retryable: true });
+      if (m.altText) {
+        try { await api("https://api.x.com/2/media/metadata", { method: "POST", headers: bearer(acc), json: { id, metadata: { alt_text: { text: m.altText.slice(0, 1000) } } } }, "X media"); } catch { /* alt text is best-effort */ }
+      }
+      mediaIds.push(id);
+    }
     const text = input.link && !input.body.includes(input.link) ? `${input.body} ${input.link}`.trim() : input.body;
-    const r = await api("https://api.x.com/2/tweets", { method: "POST", headers: bearer(acc), json: { text } }, "X");
+    const r = await api("https://api.x.com/2/tweets", { method: "POST", headers: bearer(acc), json: { text, ...(mediaIds.length ? { media: { media_ids: mediaIds } } : {}) } }, "X");
     return { externalId: r.data.id, url: `https://x.com/${acc.meta.username ?? "i"}/status/${r.data.id}` };
   },
   async metrics(acc) {
@@ -38,8 +49,8 @@ export const linkedin: Adapter = {
     const img = input.media.find((m) => m.kind === "image");
     if (img) {
       const init = await api("https://api.linkedin.com/rest/images?action=initializeUpload", { method: "POST", headers: liHeaders(acc), json: { initializeUploadRequest: { owner: author } } }, "LinkedIn");
-      const bytes = await fs.readFile(img.filePath);
-      const up = await fetch(init.value.uploadUrl, { method: "PUT", headers: { ...bearer(acc), "Content-Type": img.mimeType }, body: bytes });
+      const bytes = await img.read();
+      const up = await fetch(init.value.uploadUrl, { method: "PUT", headers: { ...bearer(acc), "Content-Type": img.mimeType }, body: new Uint8Array(bytes) });
       if (!up.ok) throw new PlatformError(`LinkedIn: image upload failed (HTTP ${up.status})`, { retryable: up.status >= 500 });
       post.content = { media: { id: init.value.image, altText: img.altText || undefined } };
     } else if (input.link) post.content = { article: { source: input.link, title: input.title || input.link } };
@@ -72,8 +83,8 @@ export const youtube: Adapter = {
     if (!init.ok) throw new PlatformError(`YouTube: ${(await init.text()).slice(0, 300)} (HTTP ${init.status})`, { status: init.status, auth: init.status === 401, retryable: init.status >= 500 });
     const location = init.headers.get("location");
     if (!location) throw new PlatformError("YouTube: no upload URL returned", { retryable: true });
-    const bytes = await fs.readFile(video.filePath);
-    const up = await fetch(location, { method: "PUT", headers: { "Content-Type": video.mimeType }, body: bytes, signal: AbortSignal.timeout(30 * 60_000) });
+    const bytes = await video.read();
+    const up = await fetch(location, { method: "PUT", headers: { "Content-Type": video.mimeType }, body: new Uint8Array(bytes), signal: AbortSignal.timeout(30 * 60_000) });
     const body = await up.json().catch(() => ({}));
     if (!up.ok) throw new PlatformError(`YouTube: upload failed (HTTP ${up.status})`, { retryable: up.status >= 500 });
     return { externalId: body.id, url: `https://youtu.be/${body.id}` };
@@ -176,12 +187,12 @@ export const telegram: Adapter = {
       const m = input.media[0]; const isVid = m.kind === "video";
       const fd = new FormData();
       fd.set("chat_id", String(chat_id)); fd.set("caption", text.slice(0, 1024));
-      fd.set(isVid ? "video" : "photo", new Blob([await fs.readFile(m.filePath)], { type: m.mimeType }), "upload");
+      fd.set(isVid ? "video" : "photo", new Blob([new Uint8Array(await m.read())], { type: m.mimeType }), "upload");
       r = await api(tg(acc, isVid ? "sendVideo" : "sendPhoto"), { method: "POST", body: fd, timeoutMs: 120_000 }, "Telegram");
     } else {
       const fd = new FormData(); fd.set("chat_id", String(chat_id));
       const media = await Promise.all(input.media.map(async (m, i) => {
-        fd.set(`f${i}`, new Blob([await fs.readFile(m.filePath)], { type: m.mimeType }), `f${i}`);
+        fd.set(`f${i}`, new Blob([new Uint8Array(await m.read())], { type: m.mimeType }), `f${i}`);
         return { type: m.kind === "video" ? "video" : "photo", media: `attach://f${i}`, ...(i === 0 ? { caption: text.slice(0, 1024) } : {}) };
       }));
       fd.set("media", JSON.stringify(media));

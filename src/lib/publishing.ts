@@ -8,7 +8,7 @@ import { validateVersion, type Issue, type MediaInfo } from "./platforms/validat
 import { ADAPTERS } from "./platforms/adapters";
 import { PlatformError } from "./platforms/http";
 import { freshAccount, markAuthProblem } from "./accounts";
-import { signedMediaUrl, storagePath } from "./storage";
+import { getObject, publicMediaUrl } from "./storage";
 import { notifyWorkspace, notifyUsers } from "./notify";
 import { audit } from "./audit";
 import { enforceLimit, requireFeature } from "./billing";
@@ -252,8 +252,8 @@ export async function publishTarget(targetId: string) {
       const adapter = ADAPTERS[p.id];
       if (!adapter.publish) throw new PlatformError(`${p.name} publishing isn't available. ${p.caps.publishVideo.note ?? p.caps.publishText.note ?? ""}`);
       const assets = v.mediaIds.length ? await db.mediaAsset.findMany({ where: { id: { in: v.mediaIds }, workspaceId: t.post.workspaceId } }) : [];
-      const ordered = v.mediaIds.map((id) => assets.find((a) => a.id === id)).filter(Boolean).map((a) => ({
-        id: a!.id, kind: a!.kind, mimeType: a!.mimeType, publicUrl: signedMediaUrl(a!.id), filePath: storagePath(a!.storageKey), sizeBytes: a!.sizeBytes, altText: a!.altText }));
+      const ordered = await Promise.all(v.mediaIds.map((id) => assets.find((a) => a.id === id)).filter(Boolean).map(async (a) => ({
+        id: a!.id, kind: a!.kind, mimeType: a!.mimeType, publicUrl: await publicMediaUrl(a!.id, a!.storageKey), read: () => getObject(a!.storageKey), sizeBytes: a!.sizeBytes, altText: a!.altText })));
       const { acc } = await freshAccount(t.accountId);
       result = await adapter.publish(acc, { body: v.body, title: v.title, link: v.link, media: ordered, options: v.options });
     }

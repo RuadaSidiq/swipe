@@ -123,3 +123,45 @@ export async function submitSupport(input: { subject: string; body: string }) {
     return true;
   });
 }
+
+export async function startTwoFactor() {
+  return safe(async () => {
+    const ctx = await requireCtx();
+    const u = await db.user.findUniqueOrThrow({ where: { id: ctx.user.id } });
+    if (u.totpEnabledAt) throw new Error("Two-factor authentication is already on.");
+    const { newTotpSecret, otpauthUrl } = await import("@/lib/totp");
+    const { encrypt } = await import("@/lib/crypto");
+    const QR = (await import("qrcode")).default;
+    const secret = newTotpSecret();
+    await db.user.update({ where: { id: u.id }, data: { totpSecretEnc: encrypt(secret), totpLastStep: null } });
+    const url = otpauthUrl(secret, u.email);
+    return { secret, qr: await QR.toDataURL(url, { margin: 1, width: 200 }) };
+  });
+}
+export async function confirmTwoFactor(code: string) {
+  return safe(async () => {
+    const ctx = await requireCtx();
+    const u = await db.user.findUniqueOrThrow({ where: { id: ctx.user.id } });
+    if (!u.totpSecretEnc || u.totpEnabledAt) throw new Error("Start setup first.");
+    const { verifyTotp, newRecoveryCodes } = await import("@/lib/totp");
+    const { decrypt, sha256 } = await import("@/lib/crypto");
+    const step = verifyTotp(decrypt(u.totpSecretEnc), code);
+    if (step === null) throw new Error("That code didn't match. Make sure your phone's clock is correct and try again.");
+    const codes = newRecoveryCodes();
+    await db.user.update({ where: { id: u.id }, data: { totpEnabledAt: new Date(), totpLastStep: step, recoveryCodes: codes.map((c) => sha256(c)) } });
+    await audit(ctx, "user.2fa_enabled");
+    revalidatePath("/settings");
+    return codes;
+  });
+}
+export async function disableTwoFactor(password: string) {
+  return safe(async () => {
+    const ctx = await requireCtx();
+    const u = await db.user.findUniqueOrThrow({ where: { id: ctx.user.id } });
+    if (!(await verifyPassword(password, u.passwordHash))) throw new Error("Password is incorrect.");
+    await db.user.update({ where: { id: u.id }, data: { totpEnabledAt: null, totpSecretEnc: null, totpLastStep: null, recoveryCodes: [] } });
+    await audit(ctx, "user.2fa_disabled");
+    revalidatePath("/settings");
+    return true;
+  });
+}

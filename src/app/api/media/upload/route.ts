@@ -27,7 +27,7 @@ export async function POST(req: Request) {
   const duration = kind === "video" && mime !== "video/webm" ? mp4Duration(buf) : null;
   const ext = { "image/jpeg": "jpg", "image/png": "png", "image/webp": "webp", "image/gif": "gif", "video/mp4": "mp4", "video/quicktime": "mov", "video/webm": "webm", "application/pdf": "pdf" }[mime];
   const key = `${ctx.workspace.id}/${new Date().toISOString().slice(0, 7)}/${randomToken(12)}.${ext}`;
-  await putObject(key, buf);
+  await putObject(key, buf, mime);
   const folderId = String(fd.get("folderId") ?? "") || null;
   if (folderId) await db.mediaFolder.findFirstOrThrow({ where: { id: folderId, workspaceId: ctx.workspace.id } });
   const asset = await db.mediaAsset.create({ data: {

@@ -25,6 +25,10 @@ model User {
   notifications   Notification[]
   notificationPrefs NotificationPreference[]
   failedLogins    Int          @default(0)
+  totpSecretEnc   String?
+  totpEnabledAt   DateTime?
+  totpLastStep    Int?
+  recoveryCodes   String[]
   lockedUntil     DateTime?
 }
 
@@ -39,6 +43,14 @@ model Session {
   createdAt   DateTime @default(now())
   expiresAt   DateTime
   @@index([userId])
+}
+
+model PendingLogin {
+  id        String   @id // sha256 of token
+  userId    String
+  next      String?
+  attempts  Int      @default(0)
+  expiresAt DateTime
 }
 
 model RateLimit {

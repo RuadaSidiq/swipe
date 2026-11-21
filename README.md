@@ -22,7 +22,7 @@ The worker is required in production. Without it, scheduled posts are never sent
 
 | Area | Status |
 |---|---|
-| Auth | Email + password (bcrypt), httpOnly DB sessions, login rate-limiting + lockout, password change signs out other devices |
+| Auth | Email + password (bcrypt), httpOnly DB sessions, login rate-limiting + lockout, password change signs out other devices, optional TOTP two-factor (authenticator apps) with single-use recovery codes and replay protection |
 | Workspaces & orgs | Multiple workspaces per organisation, workspace switcher, strict per-workspace scoping on every query |
 | Roles | Owner, Admin, Social media manager, Content creator, Support agent, Analyst, Approver (permission matrix in `src/lib/rbac.ts`) |
 | Accounts | OAuth (PKCE where supported) for Meta (FB Pages, Instagram), Threads, LinkedIn, X, YouTube, TikTok, Pinterest, Reddit, Snapchat; bot-token connect for Telegram; System-User token for WhatsApp. Multiple accounts per network, reconnect, disconnect + remote revoke where the API allows, permission scopes shown, brand assignment, default accounts |
@@ -50,13 +50,13 @@ The worker is required in production. Without it, scheduled posts are never sent
 |---|---|---|---|---|
 | Facebook Pages | text, link, photos, multi-photo, video | Messenger, comments | followers, post reactions / comments / shares | Pages only (Meta doesn't allow profiles or Groups) |
 | Instagram (Professional) | image, carousel, Reel, first comment | DMs, comments, mentions | followers, likes, comments, reach, saves, views | Needs a public `APP_URL` so Meta can fetch media |
-| Threads | text, image, video, carousel | not yet | followers, views, likes | |
+| Threads | text, image, video, carousel | replies on recent posts (polled) | followers, views, likes | |
 | LinkedIn | text, link, single image | n/a (no API) | limited | Company pages need Community Management API approval |
-| YouTube | video upload (resumable), title, visibility | comments not yet | subscribers, views, per-video stats | Unverified Google projects upload as private |
-| X | text and links | not yet (paid tier) | followers, post metrics | Media upload not yet implemented |
+| YouTube | video upload (resumable), title, visibility | comments + replies (polled) | subscribers, views, per-video stats | Unverified Google projects upload as private |
+| X | text, links, up to 4 images with alt text | mentions and replies (polled) | followers, post metrics | Read endpoints need a paid X API tier; video upload not yet implemented |
 | TikTok | video (PULL_FROM_URL) | n/a | followers, likes | Private-only until TikTok audits your app |
 | Pinterest | image pin to board | n/a | followers, pin analytics | |
-| Reddit | text and link posts to a subreddit | not yet | karma, score | Follow each community's rules |
+| Reddit | text and link posts to a subreddit | private messages, replies, mentions (polled) | karma, score | Follow each community's rules |
 | Telegram | text, photo, video, albums to channels | bot DMs, discussion-group comments | subscribers | Bot must be a channel admin |
 | WhatsApp Business | n/a (no public feed) | full conversations | n/a | Free-form replies only within 24 h |
 | Snapchat | n/a | n/a | n/a | Public Profile API is partner-only; shown as unavailable |
@@ -77,7 +77,8 @@ Webhooks ─► ingest() (idempotent) ─► Conversation/Message/Contact ─►
 - `src/lib/publishing.ts`: post lifecycle, approvals, the queue claim and status roll-up.
 - `src/lib/ai.ts`: every Claude call (Anthropic SDK, `claude-opus-5-5` by default, server-side refusal fallback enabled), with brand context, metering and plan limits.
 - Postgres is the queue, outbox and rate limiter, so a deployment needs no Redis. If volume needs it later, swap `claimDueTargets` and `rateLimit` for Redis or BullMQ.
-- Storage is local disk behind `src/lib/storage.ts`. For multi-instance deployments, replace it with S3 or Cloudflare R2 (same interface).
+- Storage is local disk by default; set `S3_BUCKET` (plus endpoint and keys) to use S3, Cloudflare R2 or MinIO. Media is then served through short-lived presigned URLs.
+- Networks without webhooks (YouTube, Reddit, X, Threads) are polled by the worker with a per-account cursor, backing off up to an hour on rate limits or paid-tier errors.
 
 ## Configuring networks
 
@@ -91,7 +92,7 @@ npm test        # unit (crypto, validation, RBAC, automations, media) + DB integ
 
 ## Known gaps / next steps
 
-- X media upload, LinkedIn video and multi-image, Pinterest video, TikTok photo posts, Reddit native images.
-- Inbox ingestion for YouTube comments, X mentions, Threads replies, Reddit messages and LinkedIn (all need polling or partner access).
-- Browser push notifications; S3/R2 storage adapter; 2FA / SSO; Meta App Review and the platform audits each network requires before production use.
+- X video, LinkedIn video and multi-image, Pinterest video, TikTok photo posts, Reddit native images.
+- LinkedIn inbox (partner access only); X direct messages.
+- Browser push notifications; SSO; Meta App Review and the platform audits each network requires before production use.
 - The AI features are type-checked against the Anthropic SDK but need an `ANTHROPIC_API_KEY` to exercise.

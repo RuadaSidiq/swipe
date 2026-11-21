@@ -11,6 +11,7 @@ import { PlatformError } from "../src/lib/platforms/http";
 import { notifyUsers } from "../src/lib/notify";
 import type { PlatformId } from "../src/lib/platforms/registry";
 import { postMetrics } from "../src/lib/platforms/adapters/postMetrics";
+import { ingest } from "../src/lib/inbox";
 
 const log = (...a: unknown[]) => console.log(new Date().toISOString(), ...a);
 let stopping = false;
@@ -67,6 +68,33 @@ async function postMetricsTick() {
   }
 }
 
+/** Inbox polling for networks without webhooks (YouTube, Reddit, X, Threads). Cursor + timing live in account.meta. */
+const POLL_EVERY_MIN: Record<string, number> = { x: 5, youtube: 3, reddit: 2, threads: 3 };
+async function pollTick() {
+  const accs = await db.socialAccount.findMany({ where: { status: "CONNECTED", isDemo: false, platform: { in: Object.keys(POLL_EVERY_MIN) } } });
+  for (const a of accs) {
+    const meta = (a.meta ?? {}) as Record<string, any>;
+    const last = meta.lastPolledAt ? new Date(meta.lastPolledAt).getTime() : 0;
+    const backoff = meta.pollBackoffMin ?? 0;
+    if (Date.now() - last < (POLL_EVERY_MIN[a.platform] + backoff) * 60_000) continue;
+    const adapter = ADAPTERS[a.platform as PlatformId];
+    if (!adapter.poll) continue;
+    try {
+      const { acc } = await freshAccount(a.id);
+      const { items, cursor } = await adapter.poll(acc, meta.pollCursor ?? null);
+      for (const it of items.sort((x, y) => (x.at?.getTime() ?? 0) - (y.at?.getTime() ?? 0))) await ingest(a, it);
+      await db.socialAccount.update({ where: { id: a.id }, data: { meta: { ...meta, pollCursor: cursor, lastPolledAt: new Date().toISOString(), pollBackoffMin: 0, pollError: null } } });
+      if (items.length) log("polled", a.platform, a.id, items.length, "items");
+    } catch (e) {
+      const err = e as Error;
+      if (e instanceof PlatformError && e.auth) await markAuthProblem(a, err.message);
+      // Rate limits / paid-tier errors: back off up to an hour instead of hammering the API.
+      await db.socialAccount.update({ where: { id: a.id }, data: { meta: { ...meta, lastPolledAt: new Date().toISOString(), pollBackoffMin: Math.min(60, Math.max(5, backoff * 2)), pollError: err.message.slice(0, 300) } } });
+      log("poll error", a.platform, a.id, err.message);
+    }
+  }
+}
+
 async function tokenTick() {
   const soon = await db.socialAccount.findMany({ where: { status: "CONNECTED", isDemo: false, tokenExpiresAt: { lt: new Date(Date.now() + 24 * 3600_000) } }, take: 20 });
   for (const a of soon) {
@@ -92,6 +120,7 @@ async function main() {
       const n = await publishTick();
       await eventsTick();
       if (tick % 4 === 0) await reminderTick();
+      if (tick % 4 === 2) await pollTick();
       if (tick % 20 === 0) await tokenTick();
       if (tick % 40 === 0) await metricsTick();
       if (tick % 40 === 20) await postMetricsTick();

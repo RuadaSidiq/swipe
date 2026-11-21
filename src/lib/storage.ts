@@ -3,25 +3,60 @@ import path from "node:path";
 import { hmac, safeEqual } from "./crypto";
 import { env } from "./env";
 
-/** Local-disk object storage. Swap for an S3/R2 implementation of the same interface in production. */
+import { DeleteObjectCommand, GetObjectCommand, PutObjectCommand, S3Client } from "@aws-sdk/client-s3";
+import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
+
+/**
+ * Object storage. Uses S3-compatible storage (AWS S3, Cloudflare R2, MinIO…) when S3_BUCKET is set,
+ * otherwise local disk (single-instance / development only).
+ */
 const ROOT = path.resolve(process.env.STORAGE_DIR ?? "./storage");
+export const usesS3 = () => Boolean(process.env.S3_BUCKET);
+let s3c: S3Client | null = null;
+const s3 = () => (s3c ??= new S3Client({
+  region: process.env.S3_REGION || "auto",
+  endpoint: process.env.S3_ENDPOINT || undefined, // e.g. https://<account>.r2.cloudflarestorage.com
+  forcePathStyle: process.env.S3_FORCE_PATH_STYLE === "true",
+  credentials: process.env.S3_ACCESS_KEY_ID ? { accessKeyId: process.env.S3_ACCESS_KEY_ID, secretAccessKey: process.env.S3_SECRET_ACCESS_KEY ?? "" } : undefined,
+}));
+const bucket = () => process.env.S3_BUCKET!;
 
 export const storagePath = (key: string) => {
   const p = path.resolve(ROOT, key);
   if (!p.startsWith(ROOT + path.sep)) throw new Error("Invalid storage key");
   return p;
 };
-export async function putObject(key: string, data: Buffer) {
+export async function putObject(key: string, data: Buffer, contentType?: string) {
+  if (usesS3()) { await s3().send(new PutObjectCommand({ Bucket: bucket(), Key: key, Body: data, ContentType: contentType })); return; }
   const p = storagePath(key);
   await fs.mkdir(path.dirname(p), { recursive: true });
   await fs.writeFile(p, data);
 }
-export async function deleteObject(key: string) { await fs.rm(storagePath(key), { force: true }); }
+export async function getObject(key: string): Promise<Buffer> {
+  if (usesS3()) {
+    const r = await s3().send(new GetObjectCommand({ Bucket: bucket(), Key: key }));
+    return Buffer.from(await r.Body!.transformToByteArray());
+  }
+  return fs.readFile(storagePath(key));
+}
+export async function deleteObject(key: string) {
+  if (usesS3()) { await s3().send(new DeleteObjectCommand({ Bucket: bucket(), Key: key })); return; }
+  await fs.rm(storagePath(key), { force: true });
+}
+/** Short-lived direct URL to the object (S3 only). */
+export async function presignedGet(key: string, ttlSec = 3600) {
+  return getSignedUrl(s3(), new GetObjectCommand({ Bucket: bucket(), Key: key }), { expiresIn: ttlSec });
+}
 
 /** Time-limited signed URL so social networks (Instagram, Threads, TikTok, Pinterest) can fetch media. */
 export function signedMediaUrl(assetId: string, ttlSec = 6 * 3600) {
   const exp = Math.floor(Date.now() / 1000) + ttlSec;
   return `${env.appUrl}/api/media/public/${assetId}?exp=${exp}&sig=${hmac(`${assetId}.${exp}`)}`;
+}
+/** URL a network will download from. TikTok PULL_FROM_URL requires a verified domain, so prefer APP_URL (or MEDIA_PUBLIC_BASE_URL). */
+export async function publicMediaUrl(assetId: string, key: string) {
+  if (process.env.MEDIA_PUBLIC_BASE_URL) return `${process.env.MEDIA_PUBLIC_BASE_URL.replace(/\/$/, "")}/${key}`;
+  return signedMediaUrl(assetId);
 }
 export function verifyMediaSig(assetId: string, exp: string, sig: string) {
   if (!exp || !sig || Number(exp) < Date.now() / 1000) return false;
