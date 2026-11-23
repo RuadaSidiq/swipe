@@ -21,15 +21,15 @@ export function MultiSelect({ label, allLabel, options, value, onChange, renderS
   }, [open]);
   const selected = options.filter((o) => value.includes(o.value));
   const toggle = (v: string) => onChange(value.includes(v) ? value.filter((x) => x !== v) : [...value, v]);
-  const summary = selected.length === 0 ? allLabel : renderSummary ? renderSummary(selected) : selected.length <= 2 ? selected.map((s) => s.label).join(", ") : `${selected.length} selected`;
   let lastGroup: string | undefined;
   return (
     <div ref={ref} className="relative min-w-0 flex-1">
       <button type="button" onClick={() => setOpen(!open)} aria-expanded={open} aria-haspopup="listbox" aria-label={label}
-        className={cx("flex h-12 w-full items-center gap-1.5 rounded-[12px] px-2.5 text-left text-[13px] font-medium transition", selected.length ? "text-[var(--accent)]" : "")}
+        className={cx("flex h-10 w-full items-center gap-1 rounded-[12px] pl-3 pr-2 text-left text-[13px] font-semibold transition", selected.length ? "text-[var(--accent)]" : "")}
         style={{ background: selected.length ? "var(--accent-soft)" : "var(--soft)", boxShadow: "var(--clay-inset)" }}>
-        <span className="min-w-0 flex-1"><span className="muted block text-[10px] font-semibold uppercase leading-tight tracking-wide">{label}</span><span className="block truncate leading-tight">{summary}</span></span>
-        <ChevronDown size={15} className={cx("shrink-0 transition", open && "rotate-180")} />
+        <span className="shrink-0 whitespace-nowrap">{label}</span>
+        {selected.length > 0 && <span className="grid h-[18px] min-w-[18px] place-items-center rounded-full px-1 text-[10.5px] font-bold text-white" style={{ background: "var(--accent)" }} aria-label={`${selected.length} selected`}>{selected.length}</span>}
+        <span className="flex-1" /><ChevronDown size={14} className={cx("shrink-0 transition", open && "rotate-180")} />
       </button>
       {open && (
         <div className="clay pop absolute left-0 top-full z-30 mt-1.5 max-h-80 w-max min-w-[210px] overflow-y-auto rounded-2xl p-1.5" role="listbox" aria-multiselectable="true">

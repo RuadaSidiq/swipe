@@ -56,8 +56,7 @@ export function InboxView({ convs, members, saved, me, filters, channels, openId
           <div className="grid grid-cols-3 gap-1.5">
             <MultiSelect label="Status" allLabel="All" options={STATUS_OPTIONS} value={filters.status} onChange={(v) => setParam("s", v.join(","))} />
             <MultiSelect label="Type" allLabel="All" options={TYPE_OPTIONS} value={filters.types} onChange={(v) => setParam("t", v.join(","))} />
-            <MultiSelect label="From" allLabel="All" options={channelOptions} value={filters.platforms} onChange={(v) => setParam("p", v.join(","))}
-              renderSummary={(sel) => <span className="flex items-center gap-1">{sel.slice(0, 4).map((o) => <PlatformBadge key={o.value} id={o.value} size={16} />)}{sel.length > 4 && <span className="text-xs">+{sel.length - 4}</span>}</span>} />
+            <MultiSelect label="From" allLabel="All" options={channelOptions} value={filters.platforms} onChange={(v) => setParam("p", v.join(","))} />
           </div>
         </div>
         <ul className="flex-1 overflow-y-auto p-2">
