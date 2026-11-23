@@ -55,7 +55,6 @@ export function Shell({ user, workspace, workspaces, counts, demo, banners, chil
   const params = useSearchParams();
   const router = useRouter();
   const [collapsed, setCollapsed] = useState(false);
-  const [wsOpen, setWsOpen] = useState(false);
   const [profile, setProfile] = useState(false);
   const [sheet, setSheet] = useState(false);
   const [pending, start] = useTransition();
@@ -75,7 +74,7 @@ export function Shell({ user, workspace, workspaces, counts, demo, banners, chil
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
   }, []);
-  useEffect(() => { setWsOpen(false); setProfile(false); setSheet(false); }, [path]);
+  useEffect(() => { setProfile(false); setSheet(false); }, [path]);
 
   const initials = user.name.split(" ").map((s) => s[0]).join("").slice(0, 2).toUpperCase();
   const today = new Date().toLocaleDateString(undefined, { weekday: "long", month: "long", day: "numeric" });
@@ -95,29 +94,6 @@ export function Shell({ user, workspace, workspaces, counts, demo, banners, chil
               {collapsed ? <PanelLeftOpen size={18} /> : <PanelLeftClose size={18} />}
             </button>
           </div>
-
-          {/* Workspace switcher */}
-          <div className="relative mb-3">
-            <button onClick={() => setWsOpen(!wsOpen)} aria-expanded={wsOpen} title={collapsed ? workspace.name : undefined}
-              className={cx("clay-inset flex w-full items-center gap-2.5 rounded-2xl text-left transition", collapsed ? "justify-center p-2" : "px-2.5 py-2")}>
-              <span className="grid h-8 w-8 shrink-0 place-items-center rounded-xl text-[12px] font-bold text-white" style={{ background: "linear-gradient(145deg,#1FC48D,#00875A)" }}>{workspace.name[0]?.toUpperCase()}</span>
-              {!collapsed && <><span className="min-w-0 flex-1"><span className="muted block text-[10.5px] font-medium uppercase tracking-wider">Workspace</span><span className="block truncate text-[13px] font-semibold">{workspace.name}</span></span><ChevronsUpDown size={14} className="muted" /></>}
-            </button>
-            {wsOpen && (
-              <div className={cx("clay pop absolute top-full z-40 mt-2 w-60 rounded-2xl p-1.5", collapsed ? "left-0" : "left-0 right-0 w-auto")}>
-                {workspaces.map((w) => (
-                  <button key={w.id} disabled={pending} onClick={() => start(() => switchWorkspace(w.id))} className="tab-link w-full justify-between">
-                    <span className="truncate">{w.name}</span>{w.id === workspace.id && <Check size={14} />}
-                  </button>
-                ))}
-                <Link href="/settings#workspaces" className="tab-link"><Plus size={14} /> New workspace</Link>
-              </div>
-            )}
-          </div>
-
-          <Link href="/publisher" className={cx("btn-primary mb-4", collapsed ? "mx-auto h-11 w-11 rounded-2xl p-0" : "w-full")} title={collapsed ? "Create post" : undefined} aria-label="Create post">
-            <Plus size={18} />{!collapsed && "Create post"}
-          </Link>
 
           <nav className="-mx-1 flex flex-1 flex-col gap-1 overflow-y-auto overflow-x-hidden px-1 py-1" aria-label="Main">
             {SECTIONS.map((s) => {
@@ -145,10 +121,18 @@ export function Shell({ user, workspace, workspaces, counts, demo, banners, chil
             <div className="relative">
               <button onClick={() => setProfile(!profile)} aria-expanded={profile} className={cx("flex w-full items-center gap-2.5 rounded-2xl p-1.5 text-left transition hover:bg-[var(--soft)]", collapsed && "justify-center")}>
                 <span className="grid h-9 w-9 shrink-0 place-items-center rounded-full text-xs font-semibold text-white" style={{ background: "linear-gradient(145deg,#1E2836,#0F1724)" }}>{initials}</span>
-                {!collapsed && <span className="min-w-0 flex-1"><span className="block truncate text-[13px] font-semibold">{user.name}</span><span className="muted block truncate text-[11.5px]">{user.email}</span></span>}
+                {!collapsed && <><span className="min-w-0 flex-1"><span className="block truncate text-[13px] font-semibold">{user.name}</span><span className="muted block truncate text-[11.5px]">{workspace.name}</span></span><ChevronsUpDown size={14} className="muted" /></>}
               </button>
               {profile && (
-                <div className={cx("clay pop absolute bottom-full z-40 mb-2 w-56 rounded-2xl p-1.5", collapsed ? "left-0" : "left-0 right-0 w-auto")}>
+                <div className={cx("clay pop absolute bottom-full z-40 mb-2 w-60 rounded-2xl p-1.5", collapsed ? "left-0" : "left-0 right-0 w-auto")}>
+                  <div className="muted px-3 pb-1 pt-1.5 text-[10.5px] font-medium uppercase tracking-wider">Workspace</div>
+                  {workspaces.map((w) => (
+                    <button key={w.id} disabled={pending} onClick={() => start(() => switchWorkspace(w.id))} className="tab-link w-full justify-between">
+                      <span className="truncate">{w.name}</span>{w.id === workspace.id && <Check size={14} />}
+                    </button>
+                  ))}
+                  <Link href="/settings#workspaces" className="tab-link"><Plus size={14} /> New workspace</Link>
+                  <div className="my-1 border-t" style={{ borderColor: "var(--line)" }} />
                   <Link href="/account" className="tab-link">Profile &amp; security</Link>
                   <Link href="/notifications" className="tab-link">Notifications</Link>
                   <form action={logout}><button className="tab-link w-full text-red-600 dark:text-red-400"><LogOut size={14} /> Sign out</button></form>
