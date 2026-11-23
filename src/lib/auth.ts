@@ -8,7 +8,7 @@ import { randomToken, sha256 } from "./crypto";
 import { can, ForbiddenError, type Permission } from "./rbac";
 import { env } from "./env";
 
-const COOKIE = "orbit_session";
+const COOKIE = "swipe_session";
 const TTL_DAYS = 14;
 
 export async function hashPassword(pw: string) { return bcrypt.hash(pw, 12); }

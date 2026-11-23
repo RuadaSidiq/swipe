@@ -92,7 +92,7 @@ export function SettingsClient({ user, workspace, brands, slots, prefs, canWorks
         <div className="flex flex-wrap gap-2">
           {(isOwner || canWorkspace) && <a href="/api/export" className="btn-secondary">Export workspace data (JSON)</a>}
           {isOwner && <button className="btn-secondary text-red-600 dark:text-red-400" onClick={() => { const n = prompt(`Type "${workspace.name}" to permanently delete this workspace, its posts, media, conversations and connected accounts.`); if (n) run("delws", () => deleteWorkspace(n)); }}>Delete workspace</button>}
-          <button className="btn-ghost text-red-600 dark:text-red-400" onClick={() => { const p = prompt("Enter your password to permanently delete your Orbit account."); if (p) run("delme", () => deleteMyAccount(p)); }}>Delete my account</button>
+          <button className="btn-ghost text-red-600 dark:text-red-400" onClick={() => { const p = prompt("Enter your password to permanently delete your Swipe account."); if (p) run("delme", () => deleteMyAccount(p)); }}>Delete my account</button>
         </div>
         <p className="muted mt-2 text-xs">Exports never include access tokens. Published posts stay on the networks.</p>
         <M k="delws" /><M k="delme" />

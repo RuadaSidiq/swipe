@@ -16,5 +16,5 @@ export async function GET(req: Request) {
   for (const s of a.series) for (const p of s.points) rows.push(["account", s.platform, s.displayName, "", "", "followers", p.value, s.source, p.date, p.date, s.isDemo]);
   for (const p of a.posts) for (const [k, v] of Object.entries(p.metrics)) rows.push(["post", p.platform, p.account, p.text, p.publishedAt?.toISOString(), k, v, p.sources.join("; "), p.publishedAt?.toISOString(), to.toISOString(), p.isDemo]);
   const csv = rows.map((r) => r.map(esc).join(",")).join("\n");
-  return new Response(csv, { headers: { "Content-Type": "text/csv; charset=utf-8", "Content-Disposition": `attachment; filename="orbit-analytics-${from.toISOString().slice(0, 10)}-${to.toISOString().slice(0, 10)}.csv"` } });
+  return new Response(csv, { headers: { "Content-Type": "text/csv; charset=utf-8", "Content-Disposition": `attachment; filename="swipe-analytics-${from.toISOString().slice(0, 10)}-${to.toISOString().slice(0, 10)}.csv"` } });
 }

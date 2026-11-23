@@ -153,7 +153,7 @@ export const pinterest: Adapter = {
 };
 
 // ── Reddit ──
-const redditUA = () => process.env.REDDIT_USER_AGENT || "web:orbit:0.1";
+const redditUA = () => process.env.REDDIT_USER_AGENT || "web:swipe:0.1";
 export const reddit: Adapter = {
   async publish(acc, input) {
     const sr = String(input.options.subreddit ?? "").replace(/^r\//, "");

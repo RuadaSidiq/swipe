@@ -20,7 +20,7 @@ export async function api<T = any>(url: string, init: RequestInit & { json?: unk
   let body = init.body;
   if (init.json !== undefined) { headers.set("Content-Type", "application/json"); body = JSON.stringify(init.json); }
   if (init.form) { headers.set("Content-Type", "application/x-www-form-urlencoded"); body = new URLSearchParams(init.form).toString(); }
-  if (!headers.has("User-Agent")) headers.set("User-Agent", "Orbit/0.1");
+  if (!headers.has("User-Agent")) headers.set("User-Agent", "Swipe/0.1");
   let res: Response;
   try {
     res = await fetch(url, { ...init, headers, body, signal: AbortSignal.timeout(init.timeoutMs ?? 30_000) });

@@ -23,7 +23,7 @@ export function AuthForm({ mode, action, next, invite, email }: { mode: "login" 
       {state?.error && <p className="rounded-lg bg-red-500/10 px-3 py-2 text-sm text-red-600" role="alert">{state.error}</p>}
       <button className="btn-primary w-full py-2.5" disabled={pending}>{pending ? "Please wait…" : mode === "signup" ? "Start free trial" : "Sign in"}</button>
       <p className="muted text-center text-sm">
-        {mode === "login" ? <>New to Orbit? <Link className="text-brand-500 hover:underline" href="/signup">Create an account</Link></> : <>Already have an account? <Link className="text-brand-500 hover:underline" href="/login">Sign in</Link></>}
+        {mode === "login" ? <>New to Swipe? <Link className="text-brand-500 hover:underline" href="/signup">Create an account</Link></> : <>Already have an account? <Link className="text-brand-500 hover:underline" href="/login">Sign in</Link></>}
       </p>
     </form>
   );

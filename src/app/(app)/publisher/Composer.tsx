@@ -46,7 +46,7 @@ export function Composer({ accounts, media: initialMedia, campaigns, brands, ini
   const [aiGenerated, setAiGenerated] = useState(false);
   const bodyRef = useRef<HTMLTextAreaElement>(null);
   // Content handed over from the AI assistant page
-  useEffect(() => { try { const d = sessionStorage.getItem("orbit-draft"); if (d && !initial.id) { setBody(d); setAiGenerated(true); sessionStorage.removeItem("orbit-draft"); } } catch { /* storage unavailable */ } }, [initial.id]);
+  useEffect(() => { try { const d = sessionStorage.getItem("swipe-draft"); if (d && !initial.id) { setBody(d); setAiGenerated(true); sessionStorage.removeItem("swipe-draft"); } } catch { /* storage unavailable */ } }, [initial.id]);
 
   const selected = targets.map((t) => accounts.find((a) => a.id === t.accountId)).filter(Boolean) as Acc[];
   const platforms = [...new Set(selected.map((a) => a.platform as PlatformId))];

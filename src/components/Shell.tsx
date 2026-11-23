@@ -64,7 +64,7 @@ export function Shell({ user, workspace, workspaces, counts, demo, banners, chil
       <aside className="no-print sticky top-0 hidden h-screen w-[248px] shrink-0 flex-col px-4 pb-4 pt-6 lg:flex" style={{ background: "var(--panel)", boxShadow: "1px 0 0 var(--line)" }} aria-label="Main">
         <Link href="/dashboard" className="mb-6 flex items-center gap-2.5 px-2">
           <SwipeLogo size={32} />
-          <span className="leading-tight"><span className="block font-display text-[17px] font-semibold">Orbit</span><span className="muted block text-[11px]">by Swipe</span></span>
+          <span className="block font-display text-[17px] font-semibold leading-tight">Swipe</span>
         </Link>
 
         <div className="relative mb-4">

@@ -1,9 +1,9 @@
 /**
- * Single source of truth for what Orbit can do on each network.
+ * Single source of truth for what Swipe can do on each network.
  * `status` values are shown verbatim in the UI so users never see a feature that silently doesn't work.
  *   implemented — wired to the official API in this codebase
  *   limited     — works, with restrictions spelled out in `note`
- *   unavailable — the network's API doesn't offer it, or Orbit hasn't built it yet (see note)
+ *   unavailable — the network's API doesn't offer it, or Swipe hasn't built it yet (see note)
  */
 export type PlatformId =
   | "instagram" | "facebook" | "tiktok" | "linkedin" | "youtube" | "x"
@@ -57,11 +57,11 @@ export const PLATFORMS: Record<PlatformId, PlatformDef> = {
     fields: ["firstComment"],
     caps: {
       publishText: NO("Instagram posts require at least one image or video."),
-      publishImage: S("implemented", "JPEG only. Orbit serves media via signed URLs, so APP_URL must be publicly reachable."),
+      publishImage: S("implemented", "JPEG only. Swipe serves media via signed URLs, so APP_URL must be publicly reachable."),
       publishMulti: S("implemented", "Carousels of up to 10 items."),
       publishVideo: S("implemented", "Published as a Reel."),
       publishLink: NO("Links in captions aren't clickable on Instagram."),
-      schedule: S("implemented", "Orbit schedules and publishes at the chosen time."),
+      schedule: S("implemented", "Swipe schedules and publishes at the chosen time."),
       dms: S("implemented", "Via Meta webhooks. Replies must be sent within Meta's 24-hour messaging window."),
       comments: S("implemented", "Via Meta webhooks; reply to comments from the inbox."),
       mentions: S("limited", "Caption @mentions arrive via webhook; story mentions aren't supported."),
@@ -88,9 +88,9 @@ export const PLATFORMS: Record<PlatformId, PlatformDef> = {
     limits: { text: 2200, images: 0, videos: 1, mixedMedia: false, requiresMedia: true, imageTypes: [], videoTypes: VID, maxImageMb: 0, maxVideoMb: 4096, maxVideoSec: 600, minVideoSec: 3 },
     fields: ["privacy"],
     caps: {
-      publishText: NO("TikTok requires a video."), publishImage: NO("Photo posts aren't supported by Orbit's TikTok adapter yet."),
-      publishMulti: NO("Photo carousels aren't supported by Orbit's TikTok adapter yet."), publishVideo: S("limited", "Direct post via PULL_FROM_URL. Private-only until your app is audited."),
-      publishLink: NO("Not supported by TikTok."), schedule: S("implemented", "Orbit schedules and publishes at the chosen time."),
+      publishText: NO("TikTok requires a video."), publishImage: NO("Photo posts aren't supported by Swipe's TikTok adapter yet."),
+      publishMulti: NO("Photo carousels aren't supported by Swipe's TikTok adapter yet."), publishVideo: S("limited", "Direct post via PULL_FROM_URL. Private-only until your app is audited."),
+      publishLink: NO("Not supported by TikTok."), schedule: S("implemented", "Swipe schedules and publishes at the chosen time."),
       dms: NO("TikTok doesn't offer a DM API to third parties."), comments: NO("TikTok's comment API isn't generally available to third-party apps."),
       mentions: NO("Not available via API."), analytics: S("implemented", "Follower and video counts from the Display API."), altText: NO("Not supported."),
     },
@@ -101,9 +101,9 @@ export const PLATFORMS: Record<PlatformId, PlatformDef> = {
     limits: { text: 3000, images: 1, videos: 0, mixedMedia: false, requiresMedia: false, imageTypes: IMG, videoTypes: [], maxImageMb: 8, maxVideoMb: 0 },
     fields: ["link"],
     caps: {
-      publishText: S("implemented"), publishImage: S("implemented", "One image per post."), publishMulti: NO("Multi-image posts aren't supported by Orbit's LinkedIn adapter yet."),
-      publishVideo: NO("Video upload isn't supported by Orbit's LinkedIn adapter yet."), publishLink: S("implemented", "Shared as an article."),
-      schedule: S("implemented", "Orbit schedules and publishes at the chosen time."),
+      publishText: S("implemented"), publishImage: S("implemented", "One image per post."), publishMulti: NO("Multi-image posts aren't supported by Swipe's LinkedIn adapter yet."),
+      publishVideo: NO("Video upload isn't supported by Swipe's LinkedIn adapter yet."), publishLink: S("implemented", "Shared as an article."),
+      schedule: S("implemented", "Swipe schedules and publishes at the chosen time."),
       dms: NO("LinkedIn doesn't provide a messaging API to third parties."),
       comments: S("limited", "Requires Community Management API approval; not ingested yet."), mentions: NO("Not available without partner access."),
       analytics: S("limited", "Profile analytics need partner access; only connection status is shown for member profiles."), altText: S("implemented"),
@@ -117,7 +117,7 @@ export const PLATFORMS: Record<PlatformId, PlatformDef> = {
     caps: {
       publishText: NO("YouTube Community posts aren't available via API."), publishImage: NO("YouTube requires a video."), publishMulti: NO("Not supported."),
       publishVideo: S("implemented", "Resumable upload with title, description and visibility. Shorts are vertical videos under 3 minutes."),
-      publishLink: NO("Add links to the description instead."), schedule: S("implemented", "Orbit uploads at the chosen time."),
+      publishLink: NO("Add links to the description instead."), schedule: S("implemented", "Swipe uploads at the chosen time."),
       dms: NO("YouTube has no messaging."), comments: S("implemented", "Polled every few minutes; reply from the inbox."), mentions: NO("Not available via API."),
       analytics: S("implemented", "Subscribers and views from the Data API."), altText: NO("Not applicable."),
     },
@@ -129,8 +129,8 @@ export const PLATFORMS: Record<PlatformId, PlatformDef> = {
     fields: [],
     caps: {
       publishText: S("implemented"), publishImage: S("implemented", "JPG, PNG, WEBP or GIF up to 5 MB."),
-      publishMulti: S("implemented", "Up to 4 images."), publishVideo: NO("Video upload isn't supported by Orbit's X adapter yet."),
-      publishLink: S("implemented", "Links count as 23 characters."), schedule: S("implemented", "Orbit schedules and publishes at the chosen time."),
+      publishMulti: S("implemented", "Up to 4 images."), publishVideo: NO("Video upload isn't supported by Swipe's X adapter yet."),
+      publishLink: S("implemented", "Links count as 23 characters."), schedule: S("implemented", "Swipe schedules and publishes at the chosen time."),
       dms: S("limited", "Requires a paid X API tier; not ingested yet."), comments: S("limited", "Replies to your posts arrive as mentions (polled; paid X API tier required)."),
       mentions: S("limited", "Polled every few minutes; needs an X API tier with read access."), analytics: S("implemented", "Follower counts from users/me (public_metrics)."), altText: S("implemented"),
     },
@@ -141,8 +141,8 @@ export const PLATFORMS: Record<PlatformId, PlatformDef> = {
     fields: ["title", "link", "board"],
     caps: {
       publishText: NO("Pins need an image."), publishImage: S("implemented", "Image pins to a chosen board, with title, description and destination link."),
-      publishMulti: NO("Carousel pins aren't supported by Orbit's adapter yet."), publishVideo: NO("Video pins aren't supported by Orbit's adapter yet."),
-      publishLink: S("implemented", "As the pin's destination link."), schedule: S("implemented", "Orbit schedules and publishes at the chosen time."),
+      publishMulti: NO("Carousel pins aren't supported by Swipe's adapter yet."), publishVideo: NO("Video pins aren't supported by Swipe's adapter yet."),
+      publishLink: S("implemented", "As the pin's destination link."), schedule: S("implemented", "Swipe schedules and publishes at the chosen time."),
       dms: NO("No messaging API."), comments: NO("No comment API."), mentions: NO("Not applicable."),
       analytics: S("implemented", "Follower count from user_account."), altText: S("implemented"),
     },
@@ -153,14 +153,14 @@ export const PLATFORMS: Record<PlatformId, PlatformDef> = {
     fields: [],
     caps: {
       publishText: S("implemented"), publishImage: S("implemented"), publishMulti: S("implemented", "Carousels of up to 10 items."), publishVideo: S("implemented"),
-      publishLink: S("implemented", "Links in text generate a preview."), schedule: S("implemented", "Orbit schedules and publishes at the chosen time."),
+      publishLink: S("implemented", "Links in text generate a preview."), schedule: S("implemented", "Swipe schedules and publishes at the chosen time."),
       dms: NO("Threads has no messaging API."), comments: S("implemented", "Replies on your recent posts are polled every few minutes; reply from the inbox."),
       mentions: S("limited", "Not ingested yet."), analytics: S("implemented", "Followers from the Threads Insights API."), altText: NO("Not exposed by the Threads API."),
     },
   },
   snapchat: {
     id: "snapchat", name: "Snapchat", color: "#FFFC00", short: "SC", connect: "oauth", requiredEnv: ["SNAPCHAT_CLIENT_ID", "SNAPCHAT_CLIENT_SECRET"],
-    accessNote: "Snapchat's Public Profile publishing API is available only to approved Snap partners. Orbit can't publish to Snapchat until your organisation is approved.",
+    accessNote: "Snapchat's Public Profile publishing API is available only to approved Snap partners. Swipe can't publish to Snapchat until your organisation is approved.",
     limits: { text: 250, images: 1, videos: 1, mixedMedia: false, requiresMedia: true, imageTypes: IMG, videoTypes: ["video/mp4"], maxImageMb: 5, maxVideoMb: 300, maxVideoSec: 60 },
     fields: [],
     caps: {
@@ -175,9 +175,9 @@ export const PLATFORMS: Record<PlatformId, PlatformDef> = {
     limits: { text: 40000, title: 300, images: 0, videos: 0, mixedMedia: false, requiresMedia: false, imageTypes: [], videoTypes: [], maxImageMb: 0, maxVideoMb: 0 },
     fields: ["title", "subreddit", "link"],
     caps: {
-      publishText: S("implemented", "Self (text) posts to a subreddit."), publishImage: NO("Native image upload isn't supported by Orbit's adapter yet; share a link instead."),
+      publishText: S("implemented", "Self (text) posts to a subreddit."), publishImage: NO("Native image upload isn't supported by Swipe's adapter yet; share a link instead."),
       publishMulti: NO("Not supported."), publishVideo: NO("Not supported."), publishLink: S("implemented", "Link posts to a subreddit."),
-      schedule: S("implemented", "Orbit schedules and publishes at the chosen time."),
+      schedule: S("implemented", "Swipe schedules and publishes at the chosen time."),
       dms: S("implemented", "Unread private messages are polled every few minutes."), comments: S("implemented", "Replies to your posts and comments are polled; reply from the inbox."), mentions: S("implemented", "Username mentions are polled."),
       analytics: S("limited", "Karma only; Reddit doesn't expose post reach."), altText: NO("Not applicable."),
     },
@@ -188,7 +188,7 @@ export const PLATFORMS: Record<PlatformId, PlatformDef> = {
     limits: { text: 4096, images: 1, videos: 0, mixedMedia: false, requiresMedia: false, imageTypes: IMG, videoTypes: [], maxImageMb: 5, maxVideoMb: 0 },
     fields: [],
     caps: {
-      publishText: NO("WhatsApp has no public feed. Broadcasts require pre-approved templates sent to opted-in contacts, which Orbit doesn't support yet."),
+      publishText: NO("WhatsApp has no public feed. Broadcasts require pre-approved templates sent to opted-in contacts, which Swipe doesn't support yet."),
       publishImage: NO("No public feed."), publishMulti: NO("No public feed."), publishVideo: NO("No public feed."), publishLink: NO("No public feed."), schedule: NO("No public feed."),
       dms: S("implemented", "Inbound messages via webhook; free-form replies within the 24-hour customer service window."),
       comments: NO("Not applicable."), mentions: NO("Not applicable."), analytics: NO("Conversation analytics aren't built yet."), altText: NO("Not applicable."),
@@ -201,7 +201,7 @@ export const PLATFORMS: Record<PlatformId, PlatformDef> = {
     fields: [],
     caps: {
       publishText: S("implemented"), publishImage: S("implemented", "Captions are limited to 1,024 characters."), publishMulti: S("implemented", "Sent as a media group (album)."),
-      publishVideo: S("implemented", "Up to 50 MB through the Bot API."), publishLink: S("implemented"), schedule: S("implemented", "Orbit schedules and publishes at the chosen time."),
+      publishVideo: S("implemented", "Up to 50 MB through the Bot API."), publishLink: S("implemented"), schedule: S("implemented", "Swipe schedules and publishes at the chosen time."),
       dms: S("implemented", "Messages sent to your bot arrive via webhook."), comments: S("limited", "Channel comments arrive only if a linked discussion group includes the bot."),
       mentions: NO("Not applicable."), analytics: S("implemented", "Subscriber count via getChatMemberCount."), altText: NO("Not supported by Telegram."),
     },

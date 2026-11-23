@@ -1,8 +1,8 @@
-# Orbit: social media management platform
+# Swipe: social media management platform
 
-Orbit puts every social account in one workspace. You can publish across 12 networks, schedule on a calendar, reply from a unified inbox, use AI that writes in your brand voice, and see analytics where each number shows its source. It runs multi-tenant, with agencies and teams in mind.
+Swipe puts every social account in one workspace. You can publish across 12 networks, schedule on a calendar, reply from a unified inbox, use AI that writes in your brand voice, and see analytics where each number shows its source. It runs multi-tenant, with agencies and teams in mind.
 
-> **Honesty principle:** Orbit only claims what it can do. Each network's capabilities live in one registry (`src/lib/platforms/registry.ts`) and are shown in the UI as *Supported*, *Limited* or *Unavailable*, with the reason. Metrics a network doesn't expose show as "unavailable" and are never estimated. Demo accounts can only exist when `DEMO_MODE=true`. They are labelled **DEMO** everywhere, and their "publishing" is recorded as *simulated*.
+> **Honesty principle:** Swipe only claims what it can do. Each network's capabilities live in one registry (`src/lib/platforms/registry.ts`) and are shown in the UI as *Supported*, *Limited* or *Unavailable*, with the reason. Metrics a network doesn't expose show as "unavailable" and are never estimated. Demo accounts can only exist when `DEMO_MODE=true`. They are labelled **DEMO** everywhere, and their "publishing" is recorded as *simulated*.
 
 ## Quick start
 
@@ -11,7 +11,7 @@ cp .env.example .env          # then fill TOKEN_ENCRYPTION_KEY and APP_SECRET (s
 docker compose up -d db       # or point DATABASE_URL at any Postgres 14+
 npm install
 npx prisma migrate deploy
-DEMO_MODE=true npm run db:seed   # optional: demo workspace (demo@orbit.local / orbit-demo-2026)
+DEMO_MODE=true npm run db:seed   # optional: demo workspace (demo@swipe.local / swipe-demo-2026)
 npm run build && npm start    # web app on :3000
 npm run worker                # background worker (publishing, automations, metrics, token refresh)
 ```

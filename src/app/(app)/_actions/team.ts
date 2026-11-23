@@ -24,7 +24,7 @@ export async function inviteMember(input: { email: string; role: string }) {
     const token = randomToken(24);
     await db.invite.create({ data: { workspaceId: ctx.workspace.id, email, role: role as Role, tokenHash: sha256(token), invitedById: ctx.user.id, expiresAt: new Date(Date.now() + 7 * 86400_000) } });
     const link = `${env.appUrl}/invite/${token}`;
-    const sent = await sendEmail(email, `${ctx.user.name} invited you to ${ctx.workspace.name} on Orbit`, `You've been invited to join ${ctx.workspace.name} on Orbit.\n\nAccept: ${link}\n\nThis link expires in 7 days.`);
+    const sent = await sendEmail(email, `${ctx.user.name} invited you to ${ctx.workspace.name} on Swipe`, `You've been invited to join ${ctx.workspace.name} on Swipe.\n\nAccept: ${link}\n\nThis link expires in 7 days.`);
     await audit(ctx, "team.invite", { targetType: "invite", detail: { email, role } });
     revalidatePath("/team");
     return { link, sent };

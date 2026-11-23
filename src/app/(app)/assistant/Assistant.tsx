@@ -33,7 +33,7 @@ export function Assistant({ brands, platforms }: { brands: { id: string; name: s
             <div className="max-h-[55vh] min-h-[300px] space-y-3 overflow-y-auto p-4">
               {chat.length === 0 && <div className="muted text-sm">Try “What should we post this week?”</div>}
               {chat.map((m, i) => <div key={i} className={cx("max-w-[85%] whitespace-pre-wrap rounded-2xl px-3.5 py-2 text-sm", m.role === "user" ? "ml-auto bg-brand-500 text-white" : "soft")}>{m.content}
-                {m.role === "assistant" && <div className="mt-1 flex gap-2"><CopyBtn text={m.content} /><Link className="text-xs opacity-70 hover:underline" href={`/publisher`} onClick={() => sessionStorage.setItem("orbit-draft", m.content)}>Use in post</Link></div>}</div>)}
+                {m.role === "assistant" && <div className="mt-1 flex gap-2"><CopyBtn text={m.content} /><Link className="text-xs opacity-70 hover:underline" href={`/publisher`} onClick={() => sessionStorage.setItem("swipe-draft", m.content)}>Use in post</Link></div>}</div>)}
               {busy && <div className="muted text-sm">Thinking…</div>}
             </div>
             <form className="line flex gap-2 border-t p-3" onSubmit={async (e) => { e.preventDefault(); if (!msg.trim()) return; const m = msg; setMsg(""); const hist = chat; setChat([...hist, { role: "user", content: m }]); setBusy(true); setErr("");
@@ -102,4 +102,4 @@ function PlatformPicker({ value, onChange }: { value: string[]; onChange: (v: st
     <button key={p.id} type="button" onClick={() => onChange(value.includes(p.id) ? value.filter((x) => x !== p.id) : [...value, p.id])} className={cx("chip border py-1 line", value.includes(p.id) ? "border-brand-500 bg-brand-500/10" : "opacity-60")}><PlatformBadge id={p.id} size={14} /> {p.name}</button>))}</div>;
 }
 function CopyBtn({ text }: { text: string }) { const [ok, setOk] = useState(false); return <button className="flex items-center gap-1 text-xs opacity-70 hover:opacity-100" onClick={() => { navigator.clipboard.writeText(text); setOk(true); setTimeout(() => setOk(false), 1500); }}><Copy size={12} /> {ok ? "Copied" : "Copy"}</button>; }
-function UseBtn({ text }: { text: string }) { return <Link className="flex items-center gap-1 text-xs text-brand-500" href="/publisher" onClick={() => sessionStorage.setItem("orbit-draft", text)}><PenSquare size={12} /> Use in a post</Link>; }
+function UseBtn({ text }: { text: string }) { return <Link className="flex items-center gap-1 text-xs text-brand-500" href="/publisher" onClick={() => sessionStorage.setItem("swipe-draft", text)}><PenSquare size={12} /> Use in a post</Link>; }

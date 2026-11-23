@@ -2,7 +2,7 @@ import { api, PlatformError } from "../http";
 import type { Adapter, AdapterAccount, PolledItem } from "../types";
 
 const bearer = (a: AdapterAccount) => ({ Authorization: `Bearer ${a.accessToken}` });
-const redditUA = () => process.env.REDDIT_USER_AGENT || "web:orbit:0.1";
+const redditUA = () => process.env.REDDIT_USER_AGENT || "web:swipe:0.1";
 
 /** YouTube: new top-level comments and replies across the channel's videos. Cursor = ISO time of newest seen. */
 export const youtubePoll: Required<Pick<Adapter, "poll" | "reply">> = {

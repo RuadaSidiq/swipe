@@ -9,7 +9,7 @@ export default function AuthLayout({ children }: { children: React.ReactNode }) 
         <div className="w-full max-w-[380px]">
           <div className="mb-10 flex items-center gap-2.5">
             <SwipeLogo size={36} />
-            <span className="leading-tight"><span className="block font-display text-lg font-semibold">Orbit</span><span className="muted block text-xs">by Swipe</span></span>
+            <span className="block font-display text-lg font-semibold leading-tight">Swipe</span>
           </div>
           {children}
         </div>

@@ -51,7 +51,7 @@ async function brandContext(workspaceId: string, brandId?: string | null) {
   ].filter(Boolean).join("\n");
 }
 
-const BASE = `You are Orbit's social media assistant, used by marketers and support teams.
+const BASE = `You are Swipe's social media assistant, used by marketers and support teams.
 Write content that is ready to paste: no preamble like "Here's a caption", no surrounding quotes, no markdown headings unless asked.
 Never invent facts, prices, statistics, discounts, dates or claims that weren't provided. If information is missing, write around it or use a clear [placeholder].`;
 
@@ -141,7 +141,7 @@ export async function reviewContent(o: { workspaceId: string; userId: string; po
 
 export async function chat(o: { workspaceId: string; userId: string; message: string; context: string; brandId?: string | null }) {
   return call({ ...o, feature: "assistant.chat", effort: "medium", maxTokens: 6000,
-    system: `${BASE}\n\n${await brandContext(o.workspaceId, o.brandId)}\nYou're a social media strategist inside Orbit. You can see a snapshot of the workspace below. Answer the user's question practically. Use markdown lists where helpful.\n\n<workspace_snapshot>\n${o.context}\n</workspace_snapshot>`,
+    system: `${BASE}\n\n${await brandContext(o.workspaceId, o.brandId)}\nYou're a social media strategist inside Swipe. You can see a snapshot of the workspace below. Answer the user's question practically. Use markdown lists where helpful.\n\n<workspace_snapshot>\n${o.context}\n</workspace_snapshot>`,
     prompt: o.message });
 }
 

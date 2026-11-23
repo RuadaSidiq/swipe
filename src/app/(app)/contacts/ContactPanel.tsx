@@ -22,7 +22,7 @@ export function ContactPanel({ c, members, canEdit }: { c: any; members: { id: s
       </form>
       <div className="label mt-4">Conversation history</div>
       <ul className="space-y-1.5">{c.conversations.map((v: any) => <li key={v.id}><Link href={`/inbox?c=${v.id}`} className="flex items-center gap-2 text-sm hover:underline"><PlatformBadge id={v.account.platform} size={14} /><span className="flex-1 truncate">{v.lastMessagePreview}</span><StatusBadge status={v.status} /></Link></li>)}</ul>
-      {canEdit && <button className="btn-ghost mt-4 w-full text-xs text-red-600 dark:text-red-400" disabled={pending} onClick={() => confirm("Erase this contact and all of their conversations from Orbit? This can't be undone.") && start(async () => { await eraseContact(c.id); router.push("/contacts"); })}>Erase contact data (privacy request)</button>}
+      {canEdit && <button className="btn-ghost mt-4 w-full text-xs text-red-600 dark:text-red-400" disabled={pending} onClick={() => confirm("Erase this contact and all of their conversations from Swipe? This can't be undone.") && start(async () => { await eraseContact(c.id); router.push("/contacts"); })}>Erase contact data (privacy request)</button>}
     </Card>
   );
 }

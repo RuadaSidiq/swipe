@@ -37,7 +37,7 @@ export const postMetrics: Record<string, (a: AdapterAccount, id: string, from: D
     return pts({ views: Number(s.viewCount ?? 0), likes: Number(s.likeCount ?? 0), comments: Number(s.commentCount ?? 0) }, from, "YouTube Data API videos.statistics (lifetime)");
   },
   reddit: async (a, id, from) => {
-    const r = await api(`https://oauth.reddit.com/api/info?id=${id}`, { headers: { ...bearer(a), "User-Agent": process.env.REDDIT_USER_AGENT ?? "web:orbit" } }, "Reddit");
+    const r = await api(`https://oauth.reddit.com/api/info?id=${id}`, { headers: { ...bearer(a), "User-Agent": process.env.REDDIT_USER_AGENT ?? "web:swipe" } }, "Reddit");
     const d = r.data?.children?.[0]?.data ?? {};
     return pts({ likes: d.score, comments: d.num_comments }, from, "Reddit /api/info score & num_comments");
   },

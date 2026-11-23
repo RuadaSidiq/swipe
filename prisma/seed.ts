@@ -6,8 +6,8 @@ import { PrismaClient } from "@prisma/client";
 import { seedDemo } from "../src/lib/demoSeed";
 
 const db = new PrismaClient();
-const email = process.env.SEED_EMAIL ?? "demo@orbit.local";
-const password = process.env.SEED_PASSWORD ?? "orbit-demo-2026";
+const email = process.env.SEED_EMAIL ?? "demo@swipe.local";
+const password = process.env.SEED_PASSWORD ?? "swipe-demo-2026";
 seedDemo(db, email, password)
   .then((done) => console.log(done ? `Seeded demo workspace. Sign in with ${email} / ${password}` : `Seed user ${email} already exists — skipping.`))
   .finally(() => db.$disconnect());

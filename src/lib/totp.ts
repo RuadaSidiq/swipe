@@ -37,7 +37,7 @@ export function verifyTotp(secret: string, code: string, now = Date.now()): numb
   }
   return null;
 }
-export const otpauthUrl = (secret: string, account: string, issuer = "Orbit") =>
+export const otpauthUrl = (secret: string, account: string, issuer = "Swipe") =>
   `otpauth://totp/${encodeURIComponent(issuer)}:${encodeURIComponent(account)}?secret=${secret}&issuer=${encodeURIComponent(issuer)}&algorithm=SHA1&digits=6&period=30`;
 
 export function newRecoveryCodes(n = 10) {

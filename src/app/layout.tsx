@@ -2,7 +2,7 @@ import type { Metadata, Viewport } from "next";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  icons: { icon: "/brand/swipe-logo.svg" }, title: { default: "Orbit by Swipe", template: "%s · Orbit" }, description: "One workspace for every social account: publish, reply, analyse." };
+  icons: { icon: "/brand/swipe-logo.svg" }, title: { default: "Swipe", template: "%s · Swipe" }, description: "One workspace for every social account: publish, reply, analyse." };
 export const viewport: Viewport = { width: "device-width", initialScale: 1 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {

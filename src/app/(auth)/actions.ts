@@ -56,7 +56,7 @@ export async function login(_: FormState, fd: FormData): Promise<FormState> {
     const token = randomToken(32);
     await db.pendingLogin.deleteMany({ where: { OR: [{ userId: user.id }, { expiresAt: { lt: new Date() } }] } });
     await db.pendingLogin.create({ data: { id: sha256(token), userId: user.id, next: next.startsWith("/") && !next.startsWith("//") ? next : null, expiresAt: new Date(Date.now() + 5 * 60_000) } });
-    (await cookies()).set("orbit_2fa", token, { httpOnly: true, secure: env.isProd, sameSite: "lax", path: "/", maxAge: 300 });
+    (await cookies()).set("swipe_2fa", token, { httpOnly: true, secure: env.isProd, sameSite: "lax", path: "/", maxAge: 300 });
     redirect("/login/2fa");
   }
   await createSession(user.id);
@@ -95,7 +95,7 @@ export async function createFirstWorkspace(fd: FormData) {
 
 export async function verifySecondFactor(_: FormState, fd: FormData): Promise<FormState> {
   const c = await cookies();
-  const token = c.get("orbit_2fa")?.value;
+  const token = c.get("swipe_2fa")?.value;
   const pending = token ? await db.pendingLogin.findUnique({ where: { id: sha256(token) } }) : null;
   if (!pending || pending.expiresAt < new Date()) return { error: "Your sign-in expired. Please sign in again." };
   if (pending.attempts >= 5) { await db.pendingLogin.delete({ where: { id: pending.id } }); return { error: "Too many incorrect codes. Please sign in again." }; }
@@ -111,7 +111,7 @@ export async function verifySecondFactor(_: FormState, fd: FormData): Promise<Fo
   }
   if (!ok) { await db.pendingLogin.update({ where: { id: pending.id }, data: { attempts: { increment: 1 } } }); return { error: "That code isn't valid. Check your authenticator app and try again." }; }
   await db.pendingLogin.delete({ where: { id: pending.id } });
-  c.delete("orbit_2fa");
+  c.delete("swipe_2fa");
   await createSession(user.id);
   await audit(null, "user.login", { targetType: "user", targetId: user.id, ip: await clientIp(), detail: { mfa: true } });
   redirect(pending.next ?? "/dashboard");

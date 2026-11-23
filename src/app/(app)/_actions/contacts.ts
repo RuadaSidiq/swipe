@@ -16,7 +16,7 @@ export async function updateContact(id: string, input: unknown) {
     revalidatePath("/contacts"); return true;
   });
 }
-/** Privacy: erase a contact's personal data and message history held by Orbit. */
+/** Privacy: erase a contact's personal data and message history held by Swipe. */
 export async function eraseContact(id: string) {
   return safe(async () => {
     const ctx = await requireCtx(); ctx.assert("contacts.manage");

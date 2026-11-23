@@ -17,5 +17,5 @@ export async function GET() {
   ]);
   await audit(ctx, "workspace.export");
   return new Response(JSON.stringify({ exportedAt: new Date(), workspace, members, brands, accounts, posts, campaigns, media, conversations, contacts, automations }, null, 2), {
-    headers: { "Content-Type": "application/json", "Content-Disposition": `attachment; filename="orbit-${workspace?.slug}-export.json"` } });
+    headers: { "Content-Type": "application/json", "Content-Disposition": `attachment; filename="swipe-${workspace?.slug}-export.json"` } });
 }

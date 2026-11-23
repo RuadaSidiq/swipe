@@ -134,7 +134,7 @@ const PROVIDERS: Partial<Record<PlatformId, OAuthProvider>> = {
     authorizeUrl: "https://www.reddit.com/api/v1/authorize", scopes: ["identity", "submit", "read", "mysubreddits", "privatemessages"], clientId: () => process.env.REDDIT_CLIENT_ID,
     extra: { duration: "permanent" },
     async exchange(code, redirect) {
-      const ua = process.env.REDDIT_USER_AGENT || "web:orbit:0.1";
+      const ua = process.env.REDDIT_USER_AGENT || "web:swipe:0.1";
       const t = await api("https://www.reddit.com/api/v1/access_token", { method: "POST", headers: { Authorization: basic(process.env.REDDIT_CLIENT_ID, process.env.REDDIT_CLIENT_SECRET), "User-Agent": ua },
         form: { grant_type: "authorization_code", code, redirect_uri: redirect } }, "Reddit");
       const me = await api("https://oauth.reddit.com/api/v1/me", { headers: { Authorization: `Bearer ${t.access_token}`, "User-Agent": ua } }, "Reddit");

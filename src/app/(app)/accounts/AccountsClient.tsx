@@ -94,7 +94,7 @@ export function AccountsClient({ accounts, brands, platforms, demoMode, canConne
       )}
 
       {details && (
-        <Modal onClose={() => setDetails(null)} title={`${details.name} — what Orbit can do`}>
+        <Modal onClose={() => setDetails(null)} title={`${details.name} — what Swipe can do`}>
           {details.accessNote && <p className="muted mb-3 text-sm">{details.accessNote}</p>}
           <table className="table w-full"><tbody>
             {Object.entries(details.caps).map(([k, c]) => (
