@@ -28,7 +28,7 @@ export default async function PostsPage({ searchParams }: { searchParams: Promis
   const qs = (o: Record<string, string | undefined>) => "?" + new URLSearchParams(Object.entries({ ...sp, ...o }).filter(([, v]) => v) as [string, string][]).toString();
   return (
     <>
-      <PageHeader title="Posts" />
+      <PageHeader title="Content" subtitle="Every post: drafts, scheduled, published and failed." />
       <div className="mb-3 flex flex-wrap gap-1">
         {TABS.map(([k, l]) => <Link key={k} href={qs({ status: k })} className={cx("btn py-1.5", (sp.status ?? "all") === k ? "soft font-medium" : "muted")}>{l} <span className="muted text-xs">{tabCount[k]}</span></Link>)}
       </div>

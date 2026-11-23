@@ -9,6 +9,6 @@ export default async function MediaPage() {
     db.mediaAsset.findMany({ where: { workspaceId: ctx.workspace.id }, orderBy: { createdAt: "desc" }, take: 500 }),
     db.mediaFolder.findMany({ where: { workspaceId: ctx.workspace.id }, orderBy: { name: "asc" } }),
   ]);
-  return (<><PageHeader title="Media library" />
+  return (<><PageHeader title="Media library" subtitle="Upload once, reuse in any post." />
     <MediaLibrary initial={JSON.parse(JSON.stringify(assets))} folders={folders} canManage={ctx.can("media.manage")} /></>);
 }

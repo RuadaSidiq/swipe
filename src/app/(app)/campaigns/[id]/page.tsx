@@ -31,7 +31,7 @@ export default async function CampaignPage({ params }: { params: Promise<{ id: s
       <Stat label="Posts" value={c.posts.length} /><Stat label="Published" value={a.published} /><Stat label="Engagements" value={a.withMetrics ? compact(eng) : "—"} hint={a.withMetrics ? `${a.withMetrics} posts with data` : "No metrics yet"} />
       <Stat label="Views / impressions" value={(a.totals.views ?? 0) + (a.totals.impressions ?? 0) ? compact((a.totals.views ?? 0) + (a.totals.impressions ?? 0)) : "—"} />
     </div>
-    <div className="grid gap-4 lg:grid-cols-[1fr_320px]">
+    <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_320px]">
       <div className="space-y-4">{groups.map(([label, st]) => { const list = c.posts.filter((p) => (st as readonly string[]).includes(p.status)); return (
         <Card key={label} title={`${label} (${list.length})`} pad={false}>{list.length === 0 ? <div className="muted px-4 py-3 text-sm">None</div> : <ul>{list.map((p) => (
           <li key={p.id}><Link href={`/posts/${p.id}`} className="line flex items-center gap-3 border-t px-4 py-2.5 first:border-t-0 hover:bg-[var(--soft)]">

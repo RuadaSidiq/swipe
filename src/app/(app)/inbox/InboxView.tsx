@@ -110,7 +110,7 @@ function Thread({ t, members, saved, me, can, onBack, reload }: { t: any; member
   const timeline = [...messages.map((m: any) => ({ ...m, _t: "m" })), ...t.notes.map((n: any) => ({ ...n, _t: "n" }))].sort((a, b) => a.createdAt.localeCompare(b.createdAt));
 
   return (
-    <div className={cx("relative grid min-h-0 flex-1", details && "xl:grid-cols-[1fr_290px]")}>
+    <div className={cx("relative grid min-h-0 flex-1", details && "xl:grid-cols-[minmax(0,1fr)_290px]")}>
       <div className="flex min-h-0 flex-col">
         <div className="line flex flex-wrap items-center gap-2 border-b px-5 py-3.5">
           <button className="btn-ghost p-1.5 lg:hidden" onClick={onBack} aria-label="Back"><ChevronLeft size={16} /></button>

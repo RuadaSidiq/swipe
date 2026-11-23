@@ -12,7 +12,7 @@ export function CampaignForm({ init, accounts, members, brands, onDone }: { init
   const toggle = (k: "accountIds" | "memberIds", id: string) => set({ [k]: v[k].includes(id) ? v[k].filter((x) => x !== id) : [...v[k], id] });
   return (
     <form className="space-y-3" onSubmit={(e) => { e.preventDefault(); start(async () => { const r = await saveCampaign({ ...v, startDate: v.startDate || null, endDate: v.endDate || null, brandId: v.brandId || null }); if (!r.ok) setErr(r.error); else { onDone?.(); router.push(`/campaigns/${r.data}`); router.refresh(); } }); }}>
-      <div className="grid gap-3 sm:grid-cols-[1fr_auto]"><input className="input" required placeholder="Campaign name (e.g. Spring launch)" value={v.name} onChange={(e) => set({ name: e.target.value })} /><input type="color" className="h-10 w-14 rounded-lg" value={v.color} onChange={(e) => set({ color: e.target.value })} aria-label="Colour" /></div>
+      <div className="grid gap-3 sm:grid-cols-[minmax(0,1fr)_auto]"><input className="input" required placeholder="Campaign name (e.g. Spring launch)" value={v.name} onChange={(e) => set({ name: e.target.value })} /><input type="color" className="h-10 w-14 rounded-lg" value={v.color} onChange={(e) => set({ color: e.target.value })} aria-label="Colour" /></div>
       <textarea className="input" rows={3} placeholder="Description" value={v.description} onChange={(e) => set({ description: e.target.value })} />
       <textarea className="input" rows={2} placeholder="Goals (e.g. 500 sign-ups, launch awareness)" value={v.goals} onChange={(e) => set({ goals: e.target.value })} />
       <div className="grid gap-3 sm:grid-cols-4">

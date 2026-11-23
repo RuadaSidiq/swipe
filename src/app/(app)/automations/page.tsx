@@ -16,7 +16,7 @@ export default async function AutomationsPage() {
     getPlan(ctx.workspace.organizationId),
   ]);
   return (<>
-    <PageHeader title="Automations" subtitle={`${plan.limits.automations} active allowed on ${plan.name}`} />
+    <PageHeader title="Automations" subtitle="Repeatable workflows that run on their own." />
     {plan.limits.automations === 0 && <div className="mb-4"><Notice tone="warn">Automations aren&apos;t included in the Free plan. Upgrade in Billing to enable them.</Notice></div>}
     <Automations autos={JSON.parse(JSON.stringify(autos))} runs={JSON.parse(JSON.stringify(runs))} members={members.map((m) => ({ id: m.id, name: m.user.name }))} events={EVENT_TYPES} actionLabels={ACTION_LABELS} />
   </>);

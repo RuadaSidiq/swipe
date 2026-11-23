@@ -1,3 +1,4 @@
+import { UserRound } from "lucide-react";
 import type { Prisma } from "@prisma/client";
 import { requireCtx } from "@/lib/auth";
 import { db } from "@/lib/db";
@@ -22,21 +23,21 @@ export default async function Contacts({ searchParams }: { searchParams: Promise
     sp.id ? db.contact.findFirst({ where: { id: sp.id, workspaceId: ws }, include: { conversations: { orderBy: { lastMessageAt: "desc" }, include: { account: { select: { displayName: true, platform: true } } } } } }) : null,
   ]);
   return (<>
-    <PageHeader title="Contacts" />
+    <PageHeader title="Audience & CRM" subtitle="People who talk to you: contacts, leads and customers." />
     <form className="mb-4 flex flex-wrap gap-2">
       <input name="q" defaultValue={sp.q} className="input max-w-xs" placeholder="Search name, username, notes" />
-      <select name="status" defaultValue={sp.status ?? ""} className="input w-36"><option value="">All statuses</option>{STATUSES.map((s) => <option key={s}>{s}</option>)}</select>
+      <select name="status" defaultValue={sp.status ?? ""} className="input w-36"><option value="">All statuses</option>{STATUSES.map((s) => <option key={s} value={s}>{s === "vip" ? "VIP" : s[0].toUpperCase() + s.slice(1)}</option>)}</select>
       <select name="platform" defaultValue={sp.platform ?? ""} className="input w-40"><option value="">All networks</option>{PLATFORM_LIST.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}</select>
       <button className="btn-secondary">Filter</button>
     </form>
-    <div className="grid gap-4 lg:grid-cols-[1fr_380px]">
+    <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_380px]">
       <Card pad={false}>{contacts.length === 0 ? <Empty title="No contacts yet" body="People who message or comment appear here." /> : (
         <div className="overflow-x-auto"><table className="table w-full"><thead><tr><th>Name</th><th>Status</th><th>Tags</th><th>Conversations</th><th>Last interaction</th></tr></thead><tbody>
           {contacts.map((c) => (<tr key={c.id} className={sp.id === c.id ? "bg-[var(--soft)]" : "hover:bg-[var(--soft)]"}>
             <td><Link href={`/contacts?${new URLSearchParams({ ...sp, id: c.id } as Record<string, string>)}`} className="flex items-center gap-2"><Avatar src={c.avatarUrl} name={c.displayName} size={28} platform={c.platform} /><div><div className="font-medium">{c.displayName}</div>{c.username && <div className="muted text-xs">@{c.username}</div>}</div></Link></td>
             <td><span className="chip soft capitalize">{c.status}</span></td><td className="text-xs">{c.tags.join(", ")}</td><td>{c._count.conversations}</td><td className="muted text-xs">{fmtDate(c.lastInteractionAt, ctx.user.timezone)}</td></tr>))}
         </tbody></table></div>)}</Card>
-      {selected ? <ContactPanel c={JSON.parse(JSON.stringify(selected))} members={members.map((m) => ({ id: m.user.id, name: m.user.name }))} canEdit={ctx.can("contacts.manage")} /> : <Card><Empty title="Select a contact" /></Card>}
+      {selected ? <ContactPanel c={JSON.parse(JSON.stringify(selected))} members={members.map((m) => ({ id: m.user.id, name: m.user.name }))} canEdit={ctx.can("contacts.manage")} /> : <Card><Empty icon={<UserRound size={22} />} title="Select a contact" body="Pick someone on the left to see their details, notes and conversation history." /></Card>}
     </div>
   </>);
 }

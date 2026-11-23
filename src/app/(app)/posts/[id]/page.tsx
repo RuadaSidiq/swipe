@@ -24,7 +24,7 @@ export default async function PostDetail({ params, searchParams }: { params: Pro
       <PageHeader title={post.title || "Post"} subtitle={<>By {author?.name ?? "Unknown"} · created {fmtDate(post.createdAt, tz)}{post.campaign && <> · campaign <Link className="text-brand-500" href={`/campaigns/${post.campaign.id}`}>{post.campaign.name}</Link></>}</>}
         actions={<PostActions post={{ id: post.id, status: post.status, scheduledAt: post.scheduledAt?.toISOString() ?? null }} can={{ edit: ctx.can("posts.edit"), approve: ctx.can("posts.approve"), schedule: ctx.can("posts.schedule"), del: ctx.can("posts.delete"), create: ctx.can("posts.create") }} />} />
       {saved && savedMsg[saved] && <div className="mb-4"><Notice tone="success">{savedMsg[saved]}</Notice></div>}
-      <div className="grid gap-4 lg:grid-cols-[1fr_360px]">
+      <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_360px]">
         <div className="space-y-4">
           <Card title={<span className="flex items-center gap-2">Status <StatusBadge status={post.status} /></span>} actions={<span className="muted text-xs">{post.publishedAt ? `Published ${fmtDate(post.publishedAt, tz)}` : post.scheduledAt ? `Scheduled for ${fmtDate(post.scheduledAt, tz)}` : "Not scheduled"}</span>} pad={false}>
             <ul>{post.targets.map((t) => {

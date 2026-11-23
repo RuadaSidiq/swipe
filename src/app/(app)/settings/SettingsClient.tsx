@@ -44,7 +44,7 @@ export function SettingsClient({ section, user, workspace, brands, slots, prefs,
       </Card>}
 
       {show("brand") && canWorkspace && <Card title="Brands & AI voice" className="xl:col-span-2" actions={<button className="btn-secondary py-1.5" onClick={() => setBrandEdit({ name: "", description: "", audience: "", tone: "", products: "", guidelines: "", bannedWords: "", examples: "", defaultHashtags: "", isDefault: false })}>+ Add brand</button>}>
-        <div id="brands" className="grid gap-3 md:grid-cols-3">{brands.map((b: any) => <button key={b.id} onClick={() => setBrandEdit(b)} className="line rounded-lg border p-3 text-left hover:bg-[var(--soft)]"><div className="font-medium">{b.name} {b.isDefault && <span className="chip bg-brand-500/15 text-brand-500">default</span>}</div><div className="muted mt-1 line-clamp-2 text-xs">{b.tone || b.description || "No voice defined yet — click to set one up."}</div></button>)}</div>
+        <div id="brands" className="grid gap-3 md:grid-cols-3">{brands.map((b: any) => <button key={b.id} onClick={() => setBrandEdit(b)} className="tile"><div className="font-medium">{b.name} {b.isDefault && <span className="chip bg-brand-500/15 text-brand-500">default</span>}</div><div className="muted mt-1 line-clamp-2 text-xs">{b.tone || b.description || "No voice defined yet — click to set one up."}</div></button>)}</div>
         {!features.multiBrand && <p className="muted mt-2 text-xs">Multiple brands are available on Professional and Agency.</p>}
         {brandEdit && (
           <form className="line mt-4 grid gap-3 border-t pt-4 md:grid-cols-2" onSubmit={(e) => { e.preventDefault(); run("brand", async () => { const r = await saveBrand(brandEdit); if (r.ok) setBrandEdit(null); return r; }); }}>

@@ -33,7 +33,7 @@ export const SECTIONS: Section[] = [
 export const SETTINGS: Section = { key: "settings", label: "Settings", href: "/settings", icon: Settings, hint: "Workspace, brand, accounts and team",
   match: ["/settings", "/accounts", "/team", "/billing"],
   tabs: [{ href: "/settings", label: "General", exact: true }, { href: "/settings/brand", label: "Brand" }, { href: "/accounts", label: "Social accounts" },
-    { href: "/team", label: "Team & permissions" }, { href: "/billing", label: "Billing" }, { href: "/settings/integrations", label: "Integrations" }, { href: "/settings/privacy", label: "Data & privacy" }] };
+    { href: "/team", label: "Team & permissions" }, { href: "/settings/integrations", label: "Integrations" }, { href: "/settings/privacy", label: "Data & privacy" }] };
 /** My account: the signed-in person. Opened from their name; follows them into every workspace. */
 const ACCOUNT: Section = { key: "account", label: "My account", href: "/account", icon: User, hint: "Profile, security and alerts", match: ["/account", "/admin"] };
 const NOTIFICATIONS: Section = { key: "notifications", label: "Notifications", href: "/notifications", icon: Bell, hint: "Your alerts", match: ["/notifications"] };

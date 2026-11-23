@@ -11,7 +11,7 @@ const KINDS = [["caption", "Caption"], ["marketing", "Marketing post"], ["announ
   ["youtube_title", "YouTube titles"], ["hashtags", "Hashtags"], ["campaign_ideas", "Campaign ideas"], ["linkedin", "LinkedIn post"], ["thread", "Thread"], ["bio", "Social bio"], ["cta", "Calls to action"], ["engagement", "Community engagement post"]] as const;
 const MODES = [["rewrite", "Rewrite"], ["shorter", "Shorter"], ["longer", "Longer"], ["professional", "Professional"], ["conversational", "Conversational"], ["persuasive", "Persuasive"], ["friendly", "Friendly"], ["improve", "Improve engagement"], ["hooks", "Alternative hooks"], ["translate", "Translate"], ["audience", "Adapt for audience"]] as const;
 
-export function Assistant({ brands, platforms }: { brands: { id: string; name: string }[]; platforms: string[] }) {
+export function Assistant({ brands, platforms, offline }: { brands: { id: string; name: string }[]; platforms: string[]; offline?: boolean }) {
   const [tool, setTool] = useState<(typeof TOOLS)[number][0]>("chat");
   const [brandId, setBrandId] = useState("");
   const [busy, setBusy] = useState(false); const [err, setErr] = useState("");
@@ -21,22 +21,31 @@ export function Assistant({ brands, platforms }: { brands: { id: string; name: s
   const [kind, setKind] = useState("caption"); const [topic, setTopic] = useState(""); const [plats, setPlats] = useState<string[]>(platforms.slice(0, 3));
   const [text, setText] = useState(""); const [mode, setMode] = useState("rewrite"); const [lang, setLang] = useState("Spanish"); const [aud, setAud] = useState("");
   const [count, setCount] = useState(5);
-  const run = async (fn: () => Promise<{ ok: boolean; data?: any; error?: string }>) => { setBusy(true); setErr(""); const r = await fn(); setBusy(false); if (r.ok) setOut(r.data); else setErr(r.error!); };
+  const run = async (fn: () => Promise<{ ok: boolean; data?: any; error?: string }>) => { if (offline) { setErr("Swipe AI isn't switched on yet."); return; } setBusy(true); setErr(""); const r = await fn(); setBusy(false); if (r.ok) setOut(r.data); else setErr(r.error!); };
   const bid = brandId || null;
 
   return (
-    <div className="grid gap-4 lg:grid-cols-[1fr_320px]">
+    <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_320px]">
       <div className="space-y-4">
-        <div className="flex flex-wrap gap-1">{TOOLS.map(([k, l]) => <button key={k} className={cx("btn py-1.5", tool === k ? "soft font-medium" : "muted")} onClick={() => { setTool(k); setOut(null); setErr(""); }}>{l}</button>)}</div>
+        <div className="clay-inset flex flex-wrap gap-1 rounded-[14px] p-1">{TOOLS.map(([k, l]) => <button key={k} className="seg" data-active={tool === k} onClick={() => { setTool(k); setOut(null); setErr(""); }}>{l}</button>)}</div>
         {tool === "chat" && (
           <Card pad={false}>
             <div className="max-h-[55vh] min-h-[300px] space-y-3 overflow-y-auto p-4">
-              {chat.length === 0 && <div className="muted text-sm">Try “What should we post this week?”</div>}
+              {chat.length === 0 && (
+                <div className="flex flex-col items-center px-4 py-8 text-center">
+                  <span className="grid h-14 w-14 place-items-center rounded-2xl text-white" style={{ background: "linear-gradient(160deg,#1FC48D,#00875A)", boxShadow: "0 12px 24px -10px rgba(0,135,90,.6), inset 0 1px 0 rgba(255,255,255,.35)" }}><Sparkles size={24} /></span>
+                  <div className="mt-4 font-display text-lg font-semibold">How can I help today?</div>
+                  <div className="muted mt-1 max-w-sm text-sm">Ask about your performance, plan content, or get ideas. I use your brand voice and real data.</div>
+                  <div className="mt-5 flex max-w-lg flex-wrap justify-center gap-2">
+                    {["What should we post this week?", "Which posts did best last month, and why?", "Write 3 captions for our new product", "Plan a 2-week campaign"].map((q) => <button key={q} type="button" className="tile px-3 py-2 text-[13px]" onClick={() => setMsg(q)}>{q}</button>)}
+                  </div>
+                </div>
+              )}
               {chat.map((m, i) => <div key={i} className={cx("max-w-[85%] whitespace-pre-wrap rounded-2xl px-3.5 py-2 text-sm", m.role === "user" ? "ml-auto bg-brand-500 text-white" : "soft")}>{m.content}
                 {m.role === "assistant" && <div className="mt-1 flex gap-2"><CopyBtn text={m.content} /><Link className="text-xs opacity-70 hover:underline" href={`/publisher`} onClick={() => sessionStorage.setItem("swipe-draft", m.content)}>Use in post</Link></div>}</div>)}
               {busy && <div className="muted text-sm">Thinking…</div>}
             </div>
-            <form className="line flex gap-2 border-t p-3" onSubmit={async (e) => { e.preventDefault(); if (!msg.trim()) return; const m = msg; setMsg(""); const hist = chat; setChat([...hist, { role: "user", content: m }]); setBusy(true); setErr("");
+            <form className="line flex gap-2 border-t p-3" onSubmit={async (e) => { e.preventDefault(); if (!msg.trim()) return; if (offline) { setErr("Swipe AI isn't switched on yet."); return; } const m = msg; setMsg(""); const hist = chat; setChat([...hist, { role: "user", content: m }]); setBusy(true); setErr("");
               const r = await aiChat(m, hist); setBusy(false); if (r.ok) setChat((c) => [...c, { role: "assistant", content: r.data }]); else setErr(r.error); }}>
               <input className="input" placeholder="Ask the assistant…" value={msg} onChange={(e) => setMsg(e.target.value)} />
               <button className="btn-primary" disabled={busy}><Send size={15} /></button>

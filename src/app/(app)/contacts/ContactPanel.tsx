@@ -13,7 +13,7 @@ export function ContactPanel({ c, members, canEdit }: { c: any; members: { id: s
       <form className="space-y-3" onSubmit={(e) => { e.preventDefault(); const f = new FormData(e.currentTarget); start(async () => {
         const r = await updateContact(c.id, { status: f.get("status"), tags: String(f.get("tags")).split(","), notes: String(f.get("notes")), assigneeUserId: String(f.get("assignee")) || null });
         setMsg(r.ok ? "Saved" : r.error); router.refresh(); }); }}>
-        <label className="block"><span className="label">Status</span><select name="status" className="input" defaultValue={c.status} disabled={!canEdit}>{["contact", "lead", "customer", "vip", "blocked"].map((s) => <option key={s}>{s}</option>)}</select></label>
+        <label className="block"><span className="label">Status</span><select name="status" className="input" defaultValue={c.status} disabled={!canEdit}>{["contact", "lead", "customer", "vip", "blocked"].map((s) => <option key={s} value={s}>{s === "vip" ? "VIP" : s[0].toUpperCase() + s.slice(1)}</option>)}</select></label>
         <label className="block"><span className="label">Tags</span><input name="tags" className="input" defaultValue={c.tags.join(", ")} disabled={!canEdit} /></label>
         <label className="block"><span className="label">Owner</span><select name="assignee" className="input" defaultValue={c.assigneeUserId ?? ""} disabled={!canEdit}><option value="">Unassigned</option>{members.map((m) => <option key={m.id} value={m.id}>{m.name}</option>)}</select></label>
         <label className="block"><span className="label">Internal notes</span><textarea name="notes" rows={4} className="input" defaultValue={c.notes} disabled={!canEdit} /></label>

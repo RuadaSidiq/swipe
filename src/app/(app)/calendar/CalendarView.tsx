@@ -59,8 +59,8 @@ export function CalendarView({ items, accounts, campaigns, slots, tz, initialVie
   return (
     <div className="space-y-3">
       <div className="flex flex-wrap items-center gap-2">
-        <div className="panel flex gap-1 p-1">{(["month", "week", "list"] as View[]).map((v) => <button key={v} onClick={() => setView(v)} className="tab-link capitalize" data-active={view === v}>{v}</button>)}
-          <select className="input w-[84px] border-0 py-1 text-sm shadow-none" value={["day", "campaign"].includes(view) ? view : ""} onChange={(e) => e.target.value && setView(e.target.value as View)} aria-label="More views"><option value="">More</option><option value="day">Day</option><option value="campaign">Campaigns</option></select></div>
+        <div className="panel flex gap-1 p-1">{(["month", "week", "day", "list"] as View[]).map((v) => <button key={v} onClick={() => setView(v)} className="tab-link capitalize" data-active={view === v}>{v}</button>)}
+          </div>
         <div className="flex items-center gap-1"><button className="btn-ghost p-1.5" onClick={() => nav(-1)} aria-label="Previous"><ChevronLeft size={16} /></button><button className="btn-secondary py-1" onClick={() => setAnchor(toZonedTime(new Date(), tz))}>Today</button><button className="btn-ghost p-1.5" onClick={() => nav(1)} aria-label="Next"><ChevronRight size={16} /></button></div>
         <div className="font-display text-[17px] font-semibold">{label} <span className="muted ml-1 font-sans text-xs font-normal">{tz}</span></div>
         <div className="flex-1" />

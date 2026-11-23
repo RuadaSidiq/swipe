@@ -28,7 +28,7 @@ export function Automations({ autos, runs, members, events, actionLabels }: { au
   const router = useRouter(); const [edit, setEdit] = useState<Auto | null>(null); const [err, setErr] = useState(""); const [pending, start] = useTransition();
   const act = (fn: () => Promise<{ ok: boolean; error?: string }>) => start(async () => { const r = await fn(); setErr(r.ok ? "" : r.error!); router.refresh(); });
   return (
-    <div className="grid gap-4 xl:grid-cols-[1fr_380px]">
+    <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_380px]">
       <div className="space-y-4">
         {err && <Notice tone="error">{err}</Notice>}
         <Card title="Your automations" actions={<button className="btn-primary py-1.5" onClick={() => setEdit({ name: "", trigger: "message.received", conditions: [], actions: [{ type: "notify", target: "everyone" }], enabled: true })}><Plus size={14} /> New</button>} pad={false}>
@@ -36,13 +36,13 @@ export function Automations({ autos, runs, members, events, actionLabels }: { au
             <li key={a.id} className="line flex flex-wrap items-center gap-3 border-t px-4 py-3 first:border-t-0">
               <Zap size={16} className={a.enabled ? "text-brand-500" : "muted"} />
               <button className="min-w-0 flex-1 text-left" onClick={() => setEdit(a)}><div className="font-medium">{a.name}</div><div className="muted text-xs">When {events[a.trigger]?.toLowerCase()}{a.conditions.length ? ` · ${a.conditions.length} condition${a.conditions.length > 1 ? "s" : ""}` : ""} → {a.actions.map((x) => actionLabels[x.type]).join(", ")} · {a._count?.runs ?? 0} runs</div></button>
-              <label className="flex items-center gap-1.5 text-sm"><input type="checkbox" checked={a.enabled} disabled={pending} onChange={(e) => act(() => toggleAutomation(a.id!, e.target.checked))} /> {a.enabled ? "On" : "Paused"}</label>
+              <label className="flex items-center gap-1.5 text-sm"><input type="checkbox" className="switch" checked={a.enabled} disabled={pending} onChange={(e) => act(() => toggleAutomation(a.id!, e.target.checked))} /> {a.enabled ? "On" : "Paused"}</label>
               <button className="btn-ghost p-2 text-red-600 dark:text-red-400" onClick={() => confirm("Delete this automation?") && act(() => deleteAutomation(a.id!))}><Trash2 size={15} /></button>
             </li>))}</ul>}
         </Card>
-        <Card title="Templates"><div className="grid gap-2 sm:grid-cols-2">{TEMPLATES.map((t) => <button key={t.name} className="line rounded-lg border p-3 text-left text-sm hover:bg-[var(--soft)]" onClick={() => setEdit(structuredClone(t))}><div className="font-medium">{t.name}</div><div className="muted text-xs">{events[t.trigger]}</div></button>)}</div></Card>
+        <Card title="Templates"><div className="grid gap-2.5 sm:grid-cols-2">{TEMPLATES.map((t) => <button key={t.name} className="tile text-sm" onClick={() => setEdit(structuredClone(t))}><div className="font-semibold">{t.name}</div><div className="muted text-xs">{events[t.trigger]}</div></button>)}</div></Card>
       </div>
-      <Card title="Run history" pad={false}>{runs.length === 0 ? <Empty title="No runs yet" /> : <ul className="max-h-[70vh] overflow-y-auto">{runs.map((r) => (
+      <Card title="Run history" pad={false}>{runs.length === 0 ? <Empty icon={<Zap size={20} />} title="No runs yet" body="Each time an automation runs, it shows up here." /> : <ul className="max-h-[70vh] overflow-y-auto">{runs.map((r) => (
         <li key={r.id} className="line border-t px-4 py-2.5 text-xs first:border-t-0"><div className="flex items-center gap-2"><span className={cx("chip", r.status === "success" ? "bg-emerald-500/15 text-emerald-700 dark:text-emerald-400" : r.status === "failed" ? "bg-red-500/15 text-red-600" : "soft")}>{r.status}</span><b className="truncate">{r.automation.name}</b><span className="muted ml-auto">{new Date(r.createdAt).toLocaleString()}</span></div><div className="muted mt-1">{r.detail}</div></li>))}</ul>}</Card>
       {edit && <Editor a={edit} members={members} events={events} actionLabels={actionLabels} onClose={() => setEdit(null)} onSaved={() => { setEdit(null); router.refresh(); }} />}
     </div>
