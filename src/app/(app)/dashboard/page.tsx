@@ -117,7 +117,7 @@ export default async function Home() {
           </div>
           <div className="relative mt-auto flex flex-wrap items-center justify-between gap-3 pt-6">
             <span className="text-[12.5px] text-white/80">Scheduled counts posts planned for this week.</span>
-            <Link href="/analytics" className="inline-flex items-center gap-1 rounded-full bg-white px-3.5 py-2 text-[13px] font-semibold text-[#00714B] transition hover:-translate-y-px" style={{ boxShadow: "0 8px 16px -8px rgba(0,0,0,.35), inset 0 -2px 4px rgba(0,0,0,.06)" }}>Full analytics <ChevronRight size={14} /></Link>
+            <Link href="/analytics" className="inline-flex items-center gap-1 rounded-[12px] bg-white px-3.5 py-2 text-[13px] font-semibold text-[#00714B] transition hover:-translate-y-px" style={{ boxShadow: "0 8px 16px -8px rgba(0,0,0,.35), inset 0 -2px 4px rgba(0,0,0,.06)" }}>Full analytics <ChevronRight size={14} /></Link>
           </div>
         </section>
 
@@ -125,7 +125,7 @@ export default async function Home() {
         <section className="panel lift flex flex-col p-5">
           <div className="flex items-center justify-between">
             <div><h2 className="section-title">Today</h2><div className="muted text-xs">{fmtDate(now, tz, "EEEE, MMMM d")}</div></div>
-            <Link href="/publisher" className="icon-btn clay rounded-full" aria-label="Create post"><Plus size={16} /></Link>
+            <Link href="/publisher" className="icon-btn clay" aria-label="Create post"><Plus size={16} /></Link>
           </div>
           <div className="mt-4 grid grid-cols-7 gap-1.5">
             {days.map((d) => { const k = dayKey(d); const isToday = k === todayKey; const n = perWeekday.get(k) ?? 0; return (

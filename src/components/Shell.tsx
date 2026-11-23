@@ -116,7 +116,7 @@ export function Shell({ user, counts, banners, children }: Props) {
               {!collapsed && counts.accounts > 0 && <span className="nav-count" style={{ background: "#E5484D" }} title="Social accounts need attention">{counts.accounts}</span>}
             </Link>
             <div className={cx("flex items-center gap-1", collapsed && "flex-col")}>
-              <Link href="/account" className={cx("flex min-w-0 flex-1 items-center gap-2.5 rounded-2xl p-1.5 transition hover:bg-[var(--soft)]", collapsed && "justify-center")} title={collapsed ? user.name : undefined} aria-label="Your profile">
+              <Link href="/account" className={cx("flex min-w-0 flex-1 items-center gap-2.5 rounded-[12px] p-1.5 transition hover:bg-[var(--soft)]", collapsed && "justify-center")} title={collapsed ? user.name : undefined} aria-label="Your profile">
                 <span className="grid h-9 w-9 shrink-0 place-items-center rounded-full text-xs font-semibold text-white" style={{ background: "linear-gradient(145deg,#1E2836,#0F1724)" }}>{initials}</span>
                 {!collapsed && <span className="min-w-0 flex-1"><span className="block truncate text-[13px] font-semibold">{user.name}</span><span className="muted block truncate text-[11.5px]">{user.email}</span></span>}
               </Link>
@@ -136,10 +136,10 @@ export function Shell({ user, counts, banners, children }: Props) {
             <div className="flex-1" />
             <form className="relative hidden w-full max-w-sm sm:block" onSubmit={(e) => { e.preventDefault(); if (q.trim()) router.push(`/search?q=${encodeURIComponent(q.trim())}`); }}>
               <Search size={16} className="muted pointer-events-none absolute left-4 top-1/2 -translate-y-1/2" />
-              <input ref={searchRef} className="clay-inset h-11 w-full rounded-full pl-11 pr-14 text-sm outline-none" value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search posts, conversations, contacts…" aria-label="Search" />
+              <input ref={searchRef} className="clay-inset h-11 w-full rounded-[12px] pl-11 pr-14 text-sm outline-none" value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search posts, conversations, contacts…" aria-label="Search" />
               <kbd className="muted pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 rounded-lg px-1.5 py-0.5 text-[11px] font-semibold" style={{ background: "var(--soft)" }}>⌘K</kbd>
             </form>
-            <Link href="/notifications" className="clay icon-btn relative h-11 w-11 rounded-full" aria-label={`Notifications${counts.notifications ? `, ${counts.notifications} unread` : ""}`}>
+            <Link href="/notifications" className="clay icon-btn relative h-11 w-11" aria-label={`Notifications${counts.notifications ? `, ${counts.notifications} unread` : ""}`}>
               <Bell size={18} />
               {counts.notifications > 0 && <span className="absolute right-2.5 top-2.5 h-2.5 w-2.5 rounded-full ring-2 ring-[var(--panel)]" style={{ background: "#E5484D" }} />}
             </Link>
@@ -161,7 +161,7 @@ export function Shell({ user, counts, banners, children }: Props) {
         <div className="clay grid grid-cols-5 items-center rounded-[26px] px-1.5 py-1.5">
           <MobileTab s={SECTIONS[0]} active={section?.key === "overview"} />
           <MobileTab s={SECTIONS[1]} active={section?.key === "inbox"} badge={counts.inbox} />
-          <Link href="/publisher" className="btn-primary mx-auto h-12 w-12 rounded-2xl p-0" aria-label="Create post"><Plus size={22} /></Link>
+          <Link href="/publisher" className="btn-primary mx-auto h-12 w-12 p-0" aria-label="Create post"><Plus size={22} /></Link>
           <MobileTab s={SECTIONS[3]} active={section?.key === "planner"} label="Planner" />
           <button onClick={() => setSheet(true)} className={cx("flex flex-col items-center gap-0.5 rounded-2xl py-1.5 text-[10.5px] font-medium", !["overview", "inbox", "planner"].includes(section?.key ?? "") ? "text-[var(--accent)]" : "muted")}><Menu size={21} />Menu</button>
         </div>
