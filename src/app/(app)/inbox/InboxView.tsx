@@ -4,6 +4,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { Archive, CheckCircle2, Flag, MailOpen, Sparkles, Send, StickyNote, Smile, BookmarkPlus, ChevronLeft, ShieldAlert, MessageCircle, PanelRight } from "lucide-react";
 import { Avatar, DemoBadge, Empty, Notice, PlatformBadge, StatusBadge, cx } from "@/components/ui";
 import { PLATFORMS, PLATFORM_LIST, type PlatformId } from "@/lib/platforms/registry";
+import { MultiSelect, type MultiOption } from "@/components/MultiSelect";
 import { assignAction, flagsAction, noteAction, openConversation, replyAction, savedReplyAction, statusAction } from "../_actions/inbox";
 import { aiReply } from "../_actions/ai";
 
@@ -15,12 +16,17 @@ const EMOJI = ["🙂", "😊", "🙏", "👍", "❤️", "🎉", "🔥", "✅", 
 const SENSITIVE = /\b(refund|chargeback|lawyer|legal|sue|fraud|scam|stolen|hack|password|credit card|bank|payment|overcharged|complain|unacceptable|harass|emergency|injur|medical)\w*/i;
 const ago = (iso: string) => { const s = (Date.now() - new Date(iso).getTime()) / 1000; return s < 60 ? "now" : s < 3600 ? `${Math.floor(s / 60)}m` : s < 86400 ? `${Math.floor(s / 3600)}h` : `${Math.floor(s / 86400)}d`; };
 
-const TABS = [["open", "All"], ["unread", "Unread"], ["mine", "Mine"], ["resolved", "Done"]] as const;
-const MORE = [["awaiting", "Needs reply"], ["unassigned", "Unassigned"], ["priority", "Priority"], ["pending", "Pending"], ["read", "Read"], ["archived", "Archived"]] as const;
+const STATUS_OPTIONS: MultiOption[] = [
+  { value: "unread", label: "Unread", group: "Status" }, { value: "read", label: "Read", group: "Status" },
+  { value: "awaiting", label: "Waiting for reply", group: "Status" }, { value: "mine", label: "Assigned to me", group: "Status" },
+  { value: "unassigned", label: "Unassigned", group: "Status" }, { value: "flagged", label: "Flagged", group: "Status" },
+  { value: "done", label: "Done", group: "Status" }, { value: "archived", label: "Archived", group: "Status" },
+  { value: "dm", label: "Messages", group: "Type" }, { value: "comment", label: "Comments", group: "Type" }, { value: "mention", label: "Mentions", group: "Type" },
+];
 
-export function InboxView({ convs, members, saved, me, filters, openId, can, unreadCount }: {
+export function InboxView({ convs, members, saved, me, filters, channels, openId, can, unreadCount }: {
   convs: ConvRow[]; members: { id: string; name: string }[]; saved: { id: string; title: string; body: string }[]; me: string; unreadCount: number;
-  filters: { f: string; type: string; platform: string; q: string }; openId?: string; can: { reply: boolean; assign: boolean; ai: boolean };
+  filters: { status: string[]; platforms: string[]; q: string }; channels: string[]; openId?: string; can: { reply: boolean; assign: boolean; ai: boolean };
 }) {
   const router = useRouter(); const params = useSearchParams();
   const [active, setActive] = useState<string | undefined>(openId);
@@ -28,8 +34,7 @@ export function InboxView({ convs, members, saved, me, filters, openId, can, unr
   const [loading, setLoading] = useState(false);
   const [q, setQ] = useState(filters.q);
   const setParam = (k: string, v: string) => { const p = new URLSearchParams(params.toString()); if (v) p.set(k, v); else p.delete(k); p.delete("c"); router.push(`/inbox?${p}`); };
-  const platformsPresent = [...new Set(convs.map((c) => c.account.platform))];
-  const inMore = MORE.some(([k]) => k === filters.f);
+  const channelOptions: MultiOption[] = [...new Set([...channels, ...filters.platforms])].map((p) => ({ value: p, label: PLATFORMS[p as PlatformId]?.name ?? p, icon: <PlatformBadge id={p} size={18} /> }));
 
   const load = useCallback(async (id: string, quiet = false) => {
     if (!quiet) setLoading(true);
@@ -48,28 +53,14 @@ export function InboxView({ convs, members, saved, me, filters, openId, can, unr
             {unreadCount > 0 && <span className="muted text-xs">{unreadCount} unread</span>}
           </div>
           <form onSubmit={(e) => { e.preventDefault(); setParam("q", q); }}><input className="input py-2" placeholder="Search messages" value={q} onChange={(e) => setQ(e.target.value)} aria-label="Search messages" /></form>
-          <div className="flex items-center gap-1">
-            {TABS.map(([k, l]) => <button key={k} className="tab-link px-2.5" data-active={filters.f === k} onClick={() => setParam("f", k)}>{l}</button>)}
-            <select className={cx("input ml-auto w-[84px] shrink-0 py-1.5 text-xs", inMore && "border-[var(--accent-bright)] text-[var(--accent)]")} value={inMore ? filters.f : ""} onChange={(e) => setParam("f", e.target.value || "open")} aria-label="More filters">
-              <option value="">More</option>{MORE.map(([k, l]) => <option key={k} value={k}>{l}</option>)}
-            </select>
+          <div className="flex gap-2">
+            <MultiSelect label="Show" allLabel="All" options={STATUS_OPTIONS} value={filters.status} onChange={(v) => setParam("s", v.join(","))} />
+            <MultiSelect label="From" allLabel="All" options={channelOptions} value={filters.platforms} onChange={(v) => setParam("p", v.join(","))}
+              renderSummary={(sel) => <span className="flex items-center gap-1">{sel.slice(0, 4).map((o) => <PlatformBadge key={o.value} id={o.value} size={16} />)}{sel.length > 4 && <span className="text-xs">+{sel.length - 4}</span>}</span>} />
           </div>
-          {(platformsPresent.length > 1 || filters.platform || filters.type) && (
-            <div className="flex flex-wrap items-center gap-1.5">
-              {platformsPresent.map((p) => (
-                <button key={p} onClick={() => setParam("platform", filters.platform === p ? "" : p)} aria-pressed={filters.platform === p} title={PLATFORMS[p as PlatformId]?.name}
-                  className={cx("rounded-lg p-0.5 transition", filters.platform && filters.platform !== p && "opacity-35", filters.platform === p && "ring-2 ring-[var(--accent-bright)]")}>
-                  <PlatformBadge id={p} size={24} />
-                </button>
-              ))}
-              <select className="input ml-auto w-auto py-1 text-xs" value={filters.type} onChange={(e) => setParam("type", e.target.value)} aria-label="Message type">
-                <option value="">All types</option><option value="dm">Messages</option><option value="comment">Comments</option><option value="mention">Mentions</option>
-              </select>
-            </div>
-          )}
         </div>
         <ul className="flex-1 overflow-y-auto p-2">
-          {convs.length === 0 && <Empty title="No conversations" body={filters.f === "open" && !filters.q ? "New messages and comments will show up here." : "Try a different filter."} />}
+          {convs.length === 0 && <Empty title="No conversations" body={!filters.status.length && !filters.platforms.length && !filters.q ? "New messages and comments will show up here." : "Try a different filter."} />}
           {convs.map((c) => (
             <li key={c.id}>
               <button onClick={() => { setActive(c.id); router.replace(`/inbox?${new URLSearchParams({ ...Object.fromEntries(params), c: c.id })}`, { scroll: false }); }}

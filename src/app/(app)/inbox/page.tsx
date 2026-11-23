@@ -9,7 +9,7 @@ import { InboxView } from "./InboxView";
 
 export const metadata = { title: "Inbox" };
 
-export default async function InboxPage({ searchParams }: { searchParams: Promise<{ f?: string; type?: string; platform?: string; q?: string; c?: string }> }) {
+export default async function InboxPage({ searchParams }: { searchParams: Promise<{ s?: string; t?: string; p?: string; q?: string; c?: string }> }) {
   const ctx = await requireCtx();
   if (!ctx.can("inbox.view")) return <Notice tone="warn">Your role doesn&apos;t include inbox access.</Notice>;
   const { plan } = await getPlan(ctx.workspace.organizationId);
@@ -17,21 +17,23 @@ export default async function InboxPage({ searchParams }: { searchParams: Promis
   const ws = ctx.workspace.id;
   const hasDemo = env.demoMode && (await db.conversation.count({ where: { workspaceId: ws, isDemo: true } })) > 0;
   if (!plan.features.inbox && !hasDemo) return <Card><Empty title="The unified inbox is part of Professional and Agency" body="Upgrade to answer every network in one place." action={<Link href="/billing" className="btn-primary">See plans</Link>} /></Card>;
-  const f = sp.f ?? "open";
-  const where: Prisma.ConversationWhereInput = { workspaceId: ws, ...(!plan.features.inbox ? { isDemo: true } : {}) };
-  if (f === "open") where.status = { in: ["OPEN", "PENDING"] };
-  if (f === "unread") { where.unread = true; where.status = { in: ["OPEN", "PENDING"] }; }
-  if (f === "mine") { where.assigneeId = ctx.membershipId; where.status = { in: ["OPEN", "PENDING"] }; }
-  if (f === "unassigned") { where.assigneeId = null; where.status = { in: ["OPEN", "PENDING"] }; }
-  if (f === "priority") { where.priority = true; where.status = { in: ["OPEN", "PENDING"] }; }
-  if (f === "awaiting") { where.awaitingReply = true; where.status = { in: ["OPEN", "PENDING"] }; }
-  if (f === "read") { where.unread = false; where.status = { in: ["OPEN", "PENDING"] }; }
-  if (f === "pending") where.status = "PENDING";
-  if (f === "resolved") where.status = "RESOLVED";
-  if (f === "archived") where.status = "ARCHIVED";
-  if (sp.type) where.kind = sp.type === "comment" ? { in: ["comment", "reply"] } : sp.type;
-  if (sp.platform) where.account = { platform: sp.platform };
-  if (sp.q) where.OR = [{ lastMessagePreview: { contains: sp.q, mode: "insensitive" } }, { contact: { displayName: { contains: sp.q, mode: "insensitive" } } }, { messages: { some: { body: { contains: sp.q, mode: "insensitive" } } } }, { tags: { has: sp.q.toLowerCase() } }];
+  // Two filters, each multi-select; empty means "All". Within a filter choices are OR'd, filters are AND'd.
+  const list = (v?: string) => (v ?? "").split(",").map((x) => x.trim()).filter(Boolean);
+  const status = list(sp.s), platforms = list(sp.p);
+  const STATUS: Record<string, Prisma.ConversationWhereInput> = {
+    unread: { unread: true }, read: { unread: false }, mine: { assigneeId: ctx.membershipId }, unassigned: { assigneeId: null },
+    flagged: { priority: true }, awaiting: { awaitingReply: true }, done: { status: "RESOLVED" }, archived: { status: "ARCHIVED" },
+  };
+  const KIND: Record<string, string[]> = { dm: ["dm"], comment: ["comment", "reply"], mention: ["mention"] };
+  const and: Prisma.ConversationWhereInput[] = [];
+  const st = status.filter((x) => STATUS[x]), kinds = status.filter((x) => KIND[x]).flatMap((x) => KIND[x]);
+  if (st.length) and.push({ OR: st.map((x) => STATUS[x]) });
+  if (!status.includes("archived")) and.push({ status: { not: "ARCHIVED" } });
+  if (kinds.length) and.push({ kind: { in: kinds } });
+  if (platforms.length) and.push({ account: { platform: { in: platforms as never[] } } });
+  if (sp.q) and.push({ OR: [{ lastMessagePreview: { contains: sp.q, mode: "insensitive" } }, { contact: { displayName: { contains: sp.q, mode: "insensitive" } } }, { messages: { some: { body: { contains: sp.q, mode: "insensitive" } } } }, { tags: { has: sp.q.toLowerCase() } }] });
+  const where: Prisma.ConversationWhereInput = { workspaceId: ws, ...(!plan.features.inbox ? { isDemo: true } : {}), AND: and };
+  const connected = await db.socialAccount.findMany({ where: { workspaceId: ws, status: { not: "DISCONNECTED" } }, select: { platform: true }, distinct: ["platform"] });
   const [convs, members, saved, counts] = await Promise.all([
     db.conversation.findMany({ where, orderBy: [{ priority: "desc" }, { lastMessageAt: "desc" }], take: 150, include: { contact: { select: { displayName: true, avatarUrl: true, username: true } }, account: { select: { platform: true, displayName: true, isDemo: true } }, assignee: { include: { user: { select: { name: true } } } } } }),
     db.membership.findMany({ where: { workspaceId: ws, role: { in: ["OWNER", "ADMIN", "MANAGER", "SUPPORT"] } }, include: { user: { select: { name: true } } } }),
@@ -40,7 +42,7 @@ export default async function InboxPage({ searchParams }: { searchParams: Promis
   ]);
   return (
     <InboxView key={JSON.stringify(sp)} convs={JSON.parse(JSON.stringify(convs))} members={members.map((m) => ({ id: m.id, name: m.user.name }))} saved={saved} me={ctx.membershipId}
-      filters={{ f, type: sp.type ?? "", platform: sp.platform ?? "", q: sp.q ?? "" }} openId={sp.c} unreadCount={counts.find((c) => c.unread)?._count ?? 0}
+      filters={{ status, platforms, q: sp.q ?? "" }} channels={connected.map((a) => a.platform)} openId={sp.c} unreadCount={counts.find((c) => c.unread)?._count ?? 0}
       can={{ reply: ctx.can("inbox.reply"), assign: ctx.can("inbox.assign"), ai: env.aiConfigured && ctx.can("ai.use") && plan.features.aiReplies }} />
   );
 }

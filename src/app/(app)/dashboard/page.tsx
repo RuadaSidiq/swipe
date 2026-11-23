@@ -65,7 +65,7 @@ export default async function Home() {
   const thisWeek = weekPosts.length;
   // Recommendations are derived only from real workspace data.
   const tips = [
-    unreadCount > 0 && { text: `Reply to ${unreadCount} unread conversation${unreadCount > 1 ? "s" : ""}. Fast replies build trust.`, href: "/inbox?f=unread", cta: "Open inbox" },
+    unreadCount > 0 && { text: `Reply to ${unreadCount} unread conversation${unreadCount > 1 ? "s" : ""}. Fast replies build trust.`, href: "/inbox?s=unread", cta: "Open inbox" },
     thisWeek === 0 && { text: "Nothing is scheduled this week. Plan a few posts to stay visible.", href: "/calendar", cta: "Open planner" },
     approvals > 0 && { text: `${approvals} post${approvals > 1 ? "s are" : " is"} waiting for your approval.`, href: "/posts?status=PENDING_APPROVAL", cta: "Review" },
     current && current.published > 0 && { text: "See which posts performed best this month, and why.", href: "/assistant", cta: "Ask Swipe AI" },
