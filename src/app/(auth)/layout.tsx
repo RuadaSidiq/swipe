@@ -5,13 +5,15 @@ const BARS = [42, 48, 39, 55, 51, 72];
 export default function AuthLayout({ children }: { children: React.ReactNode }) {
   return (
     <main className="grid min-h-screen lg:grid-cols-2">
-      <div className="flex items-center justify-center px-6 py-12" style={{ background: "var(--panel)" }}>
-        <div className="w-full max-w-[380px]">
-          <div className="mb-10 flex items-center gap-2.5">
-            <SwipeLogo size={36} />
-            <span className="block font-display text-lg font-semibold leading-tight">Swipe</span>
+      <div className="flex items-center justify-center px-4 py-12 sm:px-6" style={{ background: "var(--bg)" }}>
+        <div className="w-full max-w-[420px]">
+          <div className="mb-6 flex items-center justify-center gap-2.5">
+            <SwipeLogo size={38} />
+            <span className="block font-display text-xl font-semibold leading-tight">Swipe</span>
           </div>
-          {children}
+          <div className="page-in clay rounded-[28px] p-7 sm:p-9">
+            <div>{children}</div>
+          </div>
         </div>
       </div>
 

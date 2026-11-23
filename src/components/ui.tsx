@@ -60,17 +60,42 @@ export function Empty({ title, body, action, icon }: { title: string; body?: Rea
   );
 }
 
-/** Official network logo on a rounded tile in the network's colour. */
+/** How each network's real app icon looks: tile background and logo colour. */
+const ICON_STYLE: Record<string, { bg: string; fg: string; scale?: number; outline?: string }> = {
+  instagram: { bg: "radial-gradient(circle at 30% 107%, #FDF497 0%, #FDF497 5%, #FD5949 45%, #D6249F 60%, #285AEB 90%)", fg: "#fff" },
+  facebook: { bg: "linear-gradient(180deg, #18ACFE 0%, #0163E0 100%)", fg: "#fff", scale: 0.62 },
+  tiktok: { bg: "#000", fg: "#fff" },
+  linkedin: { bg: "#0A66C2", fg: "#fff" },
+  youtube: { bg: "#fff", fg: "#FF0000", scale: 0.68 },
+  x: { bg: "#000", fg: "#fff", scale: 0.52 },
+  pinterest: { bg: "#E60023", fg: "#fff", scale: 0.64 },
+  threads: { bg: "#000", fg: "#fff" },
+  snapchat: { bg: "#FFFC00", fg: "#fff", outline: "#000" },
+  reddit: { bg: "#FF4500", fg: "#fff", scale: 0.64 },
+  whatsapp: { bg: "linear-gradient(180deg, #5FFC7B 0%, #28D146 100%)", fg: "#fff", scale: 0.62 },
+  telegram: { bg: "linear-gradient(180deg, #37BBFE 0%, #007DBB 100%)", fg: "#fff", scale: 0.56 },
+};
+
+/** Network logo styled like its real app icon: brand tile, official mark, a soft app-icon shine. */
 export function PlatformBadge({ id, size = 20, className, plain }: { id: string; size?: number; className?: string; plain?: boolean }) {
   const p = PLATFORMS[id as PlatformId];
   const logo = LOGOS[id];
   if (!p) return null;
-  const bg = logo?.hex ?? p.color;
-  const fg = id === "snapchat" ? "#111" : "#fff";
-  if (plain && logo) return <svg role="img" aria-label={p.name} viewBox="0 0 24 24" width={size} height={size} className={cx("shrink-0", className)} fill={id === "x" || id === "threads" || id === "tiktok" ? "currentColor" : bg}><title>{p.name}</title><path d={logo.path} /></svg>;
+  const st = ICON_STYLE[id] ?? { bg: logo?.hex ?? p.color, fg: "#fff" };
+  if (plain && logo) return <svg role="img" aria-label={p.name} viewBox="0 0 24 24" width={size} height={size} className={cx("shrink-0", className)} fill={id === "x" || id === "threads" || id === "tiktok" ? "currentColor" : logo.hex}><title>{p.name}</title><path d={logo.path} /></svg>;
+  const g = size * (st.scale ?? 0.58);
+  const light = st.bg === "#fff" || st.bg === "#FFFC00";
   return (
-    <span title={p.name} role="img" aria-label={p.name} className={cx("inline-grid shrink-0 place-items-center", className)} style={{ width: size, height: size, borderRadius: Math.max(5, size * 0.3), background: bg }}>
-      {logo ? <svg viewBox="0 0 24 24" width={size * 0.58} height={size * 0.58} fill={fg} aria-hidden><path d={logo.path} /></svg> : <span style={{ color: fg, fontSize: size * 0.4, fontWeight: 700 }}>{p.short}</span>}
+    <span title={p.name} role="img" aria-label={p.name} className={cx("relative inline-grid shrink-0 place-items-center overflow-hidden", className)}
+      style={{ width: size, height: size, borderRadius: Math.max(5, size * 0.27), background: st.bg,
+        boxShadow: size >= 24 ? `inset 0 1px 0 rgba(255,255,255,${light ? 0.9 : 0.28}), inset 0 -1px 2px rgba(0,0,0,.12), 0 ${size >= 32 ? 3 : 1}px ${size >= 32 ? 8 : 3}px -1px rgba(15,23,36,.25)${light ? ", inset 0 0 0 1px rgba(15,23,36,.08)" : ""}` : light ? "inset 0 0 0 1px rgba(15,23,36,.1)" : undefined }}>
+      {logo ? (
+        <svg viewBox="0 0 24 24" width={g} height={g} aria-hidden style={{ overflow: "visible" }}>
+          {id === "tiktok" && <><path d={logo.path} fill="#25F4EE" transform="translate(-1.1 -0.9)" /><path d={logo.path} fill="#FE2C55" transform="translate(1.1 0.9)" /></>}
+          <path d={logo.path} fill={st.fg} stroke={st.outline} strokeWidth={st.outline ? 1.2 : undefined} strokeLinejoin="round" paintOrder="stroke" />
+        </svg>
+      ) : <span style={{ color: st.fg, fontSize: size * 0.4, fontWeight: 700 }}>{p.short}</span>}
+      {size >= 24 && <span aria-hidden className="pointer-events-none absolute inset-x-0 top-0 h-1/2" style={{ background: "linear-gradient(180deg, rgba(255,255,255,.18), rgba(255,255,255,0))" }} />}
     </span>
   );
 }
