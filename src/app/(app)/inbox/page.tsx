@@ -19,14 +19,14 @@ export default async function InboxPage({ searchParams }: { searchParams: Promis
   if (!plan.features.inbox && !hasDemo) return <Card><Empty title="The unified inbox is part of Professional and Agency" body="Upgrade to answer every network in one place." action={<Link href="/billing" className="btn-primary">See plans</Link>} /></Card>;
   // Two filters, each multi-select; empty means "All". Within a filter choices are OR'd, filters are AND'd.
   const list = (v?: string) => (v ?? "").split(",").map((x) => x.trim()).filter(Boolean);
-  const status = list(sp.s), platforms = list(sp.p);
+  const status = list(sp.s), types = list(sp.t), platforms = list(sp.p);
   const STATUS: Record<string, Prisma.ConversationWhereInput> = {
     unread: { unread: true }, read: { unread: false }, mine: { assigneeId: ctx.membershipId }, unassigned: { assigneeId: null },
     flagged: { priority: true }, awaiting: { awaitingReply: true }, done: { status: "RESOLVED" }, archived: { status: "ARCHIVED" },
   };
   const KIND: Record<string, string[]> = { dm: ["dm"], comment: ["comment", "reply"], mention: ["mention"] };
   const and: Prisma.ConversationWhereInput[] = [];
-  const st = status.filter((x) => STATUS[x]), kinds = status.filter((x) => KIND[x]).flatMap((x) => KIND[x]);
+  const st = status.filter((x) => STATUS[x]), kinds = types.filter((x) => KIND[x]).flatMap((x) => KIND[x]);
   if (st.length) and.push({ OR: st.map((x) => STATUS[x]) });
   if (!status.includes("archived")) and.push({ status: { not: "ARCHIVED" } });
   if (kinds.length) and.push({ kind: { in: kinds } });
@@ -42,7 +42,7 @@ export default async function InboxPage({ searchParams }: { searchParams: Promis
   ]);
   return (
     <InboxView key={JSON.stringify(sp)} convs={JSON.parse(JSON.stringify(convs))} members={members.map((m) => ({ id: m.id, name: m.user.name }))} saved={saved} me={ctx.membershipId}
-      filters={{ status, platforms, q: sp.q ?? "" }} channels={connected.map((a) => a.platform)} openId={sp.c} unreadCount={counts.find((c) => c.unread)?._count ?? 0}
+      filters={{ status, types, platforms, q: sp.q ?? "" }} channels={connected.map((a) => a.platform)} openId={sp.c} unreadCount={counts.find((c) => c.unread)?._count ?? 0}
       can={{ reply: ctx.can("inbox.reply"), assign: ctx.can("inbox.assign"), ai: env.aiConfigured && ctx.can("ai.use") && plan.features.aiReplies }} />
   );
 }

@@ -26,14 +26,13 @@ export function MultiSelect({ label, allLabel, options, value, onChange, renderS
   return (
     <div ref={ref} className="relative min-w-0 flex-1">
       <button type="button" onClick={() => setOpen(!open)} aria-expanded={open} aria-haspopup="listbox" aria-label={label}
-        className={cx("flex h-10 w-full items-center gap-2 rounded-[12px] px-3 text-left text-[13px] font-medium transition", selected.length ? "text-[var(--accent)]" : "")}
+        className={cx("flex h-12 w-full items-center gap-1.5 rounded-[12px] px-2.5 text-left text-[13px] font-medium transition", selected.length ? "text-[var(--accent)]" : "")}
         style={{ background: selected.length ? "var(--accent-soft)" : "var(--soft)", boxShadow: "var(--clay-inset)" }}>
-        <span className="muted shrink-0 text-[11px] font-semibold uppercase tracking-wide">{label}</span>
-        <span className="min-w-0 flex-1 truncate">{summary}</span>
+        <span className="min-w-0 flex-1"><span className="muted block text-[10px] font-semibold uppercase leading-tight tracking-wide">{label}</span><span className="block truncate leading-tight">{summary}</span></span>
         <ChevronDown size={15} className={cx("shrink-0 transition", open && "rotate-180")} />
       </button>
       {open && (
-        <div className="clay pop absolute left-0 right-0 top-full z-30 mt-1.5 max-h-80 min-w-[220px] overflow-y-auto rounded-2xl p-1.5" role="listbox" aria-multiselectable="true">
+        <div className="clay pop absolute left-0 top-full z-30 mt-1.5 max-h-80 w-max min-w-[210px] overflow-y-auto rounded-2xl p-1.5" role="listbox" aria-multiselectable="true">
           <button type="button" onClick={() => onChange([])} className="tab-link w-full justify-between text-left" data-active={selected.length === 0}>
             <span>{allLabel}</span>{selected.length === 0 && <Check size={14} />}
           </button>

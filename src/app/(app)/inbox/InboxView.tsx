@@ -17,16 +17,16 @@ const SENSITIVE = /\b(refund|chargeback|lawyer|legal|sue|fraud|scam|stolen|hack|
 const ago = (iso: string) => { const s = (Date.now() - new Date(iso).getTime()) / 1000; return s < 60 ? "now" : s < 3600 ? `${Math.floor(s / 60)}m` : s < 86400 ? `${Math.floor(s / 3600)}h` : `${Math.floor(s / 86400)}d`; };
 
 const STATUS_OPTIONS: MultiOption[] = [
-  { value: "unread", label: "Unread", group: "Status" }, { value: "read", label: "Read", group: "Status" },
-  { value: "awaiting", label: "Waiting for reply", group: "Status" }, { value: "mine", label: "Assigned to me", group: "Status" },
-  { value: "unassigned", label: "Unassigned", group: "Status" }, { value: "flagged", label: "Flagged", group: "Status" },
-  { value: "done", label: "Done", group: "Status" }, { value: "archived", label: "Archived", group: "Status" },
-  { value: "dm", label: "Messages", group: "Type" }, { value: "comment", label: "Comments", group: "Type" }, { value: "mention", label: "Mentions", group: "Type" },
+  { value: "unread", label: "Unread" }, { value: "read", label: "Read" },
+  { value: "awaiting", label: "Waiting for reply" }, { value: "mine", label: "Assigned to me" },
+  { value: "unassigned", label: "Unassigned" }, { value: "flagged", label: "Flagged" },
+  { value: "done", label: "Done" }, { value: "archived", label: "Archived" },
 ];
+const TYPE_OPTIONS: MultiOption[] = [{ value: "dm", label: "Messages" }, { value: "comment", label: "Comments" }, { value: "mention", label: "Mentions" }];
 
 export function InboxView({ convs, members, saved, me, filters, channels, openId, can, unreadCount }: {
   convs: ConvRow[]; members: { id: string; name: string }[]; saved: { id: string; title: string; body: string }[]; me: string; unreadCount: number;
-  filters: { status: string[]; platforms: string[]; q: string }; channels: string[]; openId?: string; can: { reply: boolean; assign: boolean; ai: boolean };
+  filters: { status: string[]; types: string[]; platforms: string[]; q: string }; channels: string[]; openId?: string; can: { reply: boolean; assign: boolean; ai: boolean };
 }) {
   const router = useRouter(); const params = useSearchParams();
   const [active, setActive] = useState<string | undefined>(openId);
@@ -53,14 +53,15 @@ export function InboxView({ convs, members, saved, me, filters, channels, openId
             {unreadCount > 0 && <span className="muted text-xs">{unreadCount} unread</span>}
           </div>
           <form onSubmit={(e) => { e.preventDefault(); setParam("q", q); }}><input className="input py-2" placeholder="Search messages" value={q} onChange={(e) => setQ(e.target.value)} aria-label="Search messages" /></form>
-          <div className="flex gap-2">
-            <MultiSelect label="Show" allLabel="All" options={STATUS_OPTIONS} value={filters.status} onChange={(v) => setParam("s", v.join(","))} />
+          <div className="grid grid-cols-3 gap-1.5">
+            <MultiSelect label="Status" allLabel="All" options={STATUS_OPTIONS} value={filters.status} onChange={(v) => setParam("s", v.join(","))} />
+            <MultiSelect label="Type" allLabel="All" options={TYPE_OPTIONS} value={filters.types} onChange={(v) => setParam("t", v.join(","))} />
             <MultiSelect label="From" allLabel="All" options={channelOptions} value={filters.platforms} onChange={(v) => setParam("p", v.join(","))}
               renderSummary={(sel) => <span className="flex items-center gap-1">{sel.slice(0, 4).map((o) => <PlatformBadge key={o.value} id={o.value} size={16} />)}{sel.length > 4 && <span className="text-xs">+{sel.length - 4}</span>}</span>} />
           </div>
         </div>
         <ul className="flex-1 overflow-y-auto p-2">
-          {convs.length === 0 && <Empty title="No conversations" body={!filters.status.length && !filters.platforms.length && !filters.q ? "New messages and comments will show up here." : "Try a different filter."} />}
+          {convs.length === 0 && <Empty title="No conversations" body={!filters.status.length && !filters.types.length && !filters.platforms.length && !filters.q ? "New messages and comments will show up here." : "Try a different filter."} />}
           {convs.map((c) => (
             <li key={c.id}>
               <button onClick={() => { setActive(c.id); router.replace(`/inbox?${new URLSearchParams({ ...Object.fromEntries(params), c: c.id })}`, { scroll: false }); }}
