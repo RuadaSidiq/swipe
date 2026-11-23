@@ -78,10 +78,6 @@ export default async function Home() {
           <h1 className="font-display text-[28px] font-semibold leading-tight">Good {greet}, {first}</h1>
           <p className="muted mt-0.5 text-sm">Here&apos;s what&apos;s happening across your social accounts.</p>
         </div>
-        <div className="flex gap-2">
-          <Link href="/inbox" className="btn-secondary"><MessageCircle size={16} /> Open inbox</Link>
-          <Link href="/publisher" className="btn-primary"><Plus size={16} /> Create post</Link>
-        </div>
       </div>
 
       {accounts.length === 0 && (

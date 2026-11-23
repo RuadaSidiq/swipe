@@ -1,13 +1,12 @@
 "use client";
 import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
-import { useEffect, useRef, useState, useTransition } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   LayoutGrid, Inbox, PenSquare, CalendarDays, Users, BarChart3, Sparkles, Workflow, Settings, Bell, Search, Plus,
-  ChevronsUpDown, Check, LogOut, X, Menu, PanelLeftClose, PanelLeftOpen,
+  LogOut, X, Menu, PanelLeftClose, PanelLeftOpen,
 } from "lucide-react";
 import { cx, SwipeLogo } from "./ui";
-import { switchWorkspace } from "@/app/(app)/_actions/common";
 import { logout } from "@/app/(auth)/actions";
 
 type Icon = React.ComponentType<{ size?: number; strokeWidth?: number; className?: string }>;
@@ -50,14 +49,12 @@ interface Props {
 
 const COLLAPSE_KEY = "swipe.sidebar.collapsed";
 
-export function Shell({ user, workspace, workspaces, counts, demo, banners, children }: Props) {
+export function Shell({ user, counts, banners, children }: Props) {
   const path = usePathname();
   const params = useSearchParams();
   const router = useRouter();
   const [collapsed, setCollapsed] = useState(false);
-  const [profile, setProfile] = useState(false);
   const [sheet, setSheet] = useState(false);
-  const [pending, start] = useTransition();
   const [q, setQ] = useState("");
   const searchRef = useRef<HTMLInputElement>(null);
   const section = ALL.find((s) => inSection(s, path));
@@ -74,7 +71,7 @@ export function Shell({ user, workspace, workspaces, counts, demo, banners, chil
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
   }, []);
-  useEffect(() => { setProfile(false); setSheet(false); }, [path]);
+  useEffect(() => { setSheet(false); }, [path]);
 
   const initials = user.name.split(" ").map((s) => s[0]).join("").slice(0, 2).toUpperCase();
   const today = new Date().toLocaleDateString(undefined, { weekday: "long", month: "long", day: "numeric" });
@@ -118,26 +115,11 @@ export function Shell({ user, workspace, workspaces, counts, demo, banners, chil
               <Settings size={19} strokeWidth={1.8} />{!collapsed && <span className="flex-1">Settings</span>}
               {!collapsed && counts.accounts > 0 && <span className="nav-count" style={{ background: "#E5484D" }} title="Social accounts need attention">{counts.accounts}</span>}
             </Link>
-            <div className="relative">
-              <button onClick={() => setProfile(!profile)} aria-expanded={profile} className={cx("flex w-full items-center gap-2.5 rounded-2xl p-1.5 text-left transition hover:bg-[var(--soft)]", collapsed && "justify-center")}>
+            <div className={cx("flex items-center gap-1", collapsed && "flex-col")}>
+              <Link href="/account" className={cx("flex min-w-0 flex-1 items-center gap-2.5 rounded-2xl p-1.5 transition hover:bg-[var(--soft)]", collapsed && "justify-center")} title={collapsed ? user.name : undefined} aria-label="Your profile">
                 <span className="grid h-9 w-9 shrink-0 place-items-center rounded-full text-xs font-semibold text-white" style={{ background: "linear-gradient(145deg,#1E2836,#0F1724)" }}>{initials}</span>
-                {!collapsed && <><span className="min-w-0 flex-1"><span className="block truncate text-[13px] font-semibold">{user.name}</span><span className="muted block truncate text-[11.5px]">{workspace.name}</span></span><ChevronsUpDown size={14} className="muted" /></>}
-              </button>
-              {profile && (
-                <div className={cx("clay pop absolute bottom-full z-40 mb-2 w-60 rounded-2xl p-1.5", collapsed ? "left-0" : "left-0 right-0 w-auto")}>
-                  <div className="muted px-3 pb-1 pt-1.5 text-[10.5px] font-medium uppercase tracking-wider">Workspace</div>
-                  {workspaces.map((w) => (
-                    <button key={w.id} disabled={pending} onClick={() => start(() => switchWorkspace(w.id))} className="tab-link w-full justify-between">
-                      <span className="truncate">{w.name}</span>{w.id === workspace.id && <Check size={14} />}
-                    </button>
-                  ))}
-                  <Link href="/settings#workspaces" className="tab-link"><Plus size={14} /> New workspace</Link>
-                  <div className="my-1 border-t" style={{ borderColor: "var(--line)" }} />
-                  <Link href="/account" className="tab-link">Profile &amp; security</Link>
-                  <Link href="/notifications" className="tab-link">Notifications</Link>
-                  <form action={logout}><button className="tab-link w-full text-red-600 dark:text-red-400"><LogOut size={14} /> Sign out</button></form>
-                </div>
-              )}
+                {!collapsed && <span className="min-w-0 flex-1"><span className="block truncate text-[13px] font-semibold">{user.name}</span><span className="muted block truncate text-[11.5px]">{user.email}</span></span>}
+              </Link>
             </div>
           </div>
         </div>
@@ -157,12 +139,10 @@ export function Shell({ user, workspace, workspaces, counts, demo, banners, chil
               <input ref={searchRef} className="clay-inset h-11 w-full rounded-full pl-11 pr-14 text-sm outline-none" value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search posts, conversations, contacts…" aria-label="Search" />
               <kbd className="muted pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 rounded-lg px-1.5 py-0.5 text-[11px] font-semibold" style={{ background: "var(--soft)" }}>⌘K</kbd>
             </form>
-            {demo && <span className="chip soft muted hidden md:inline-flex" title="Demo accounts simulate publishing. Nothing reaches real networks.">Demo</span>}
             <Link href="/notifications" className="clay icon-btn relative h-11 w-11 rounded-full" aria-label={`Notifications${counts.notifications ? `, ${counts.notifications} unread` : ""}`}>
               <Bell size={18} />
               {counts.notifications > 0 && <span className="absolute right-2.5 top-2.5 h-2.5 w-2.5 rounded-full ring-2 ring-[var(--panel)]" style={{ background: "#E5484D" }} />}
             </Link>
-            <Link href="/account" className="hidden h-11 w-11 place-items-center rounded-full text-xs font-semibold text-white md:grid" style={{ background: "linear-gradient(145deg,#1E2836,#0F1724)", boxShadow: "var(--clay-shadow)" }} aria-label="Your account">{initials}</Link>
           </div>
           {tabs && (
             <nav className="no-print -mx-1 flex gap-1 overflow-x-auto px-1 pb-2 pt-1" aria-label={`${section!.label} sections`}>
@@ -192,7 +172,7 @@ export function Shell({ user, workspace, workspaces, counts, demo, banners, chil
           <div className="sheet-in clay absolute inset-x-2 bottom-2 max-h-[85vh] overflow-y-auto rounded-[28px] p-3" style={{ paddingBottom: "max(12px, env(safe-area-inset-bottom))" }}>
             <div className="mx-auto mb-3 h-1.5 w-10 rounded-full" style={{ background: "var(--line-strong)" }} />
             <div className="mb-2 flex items-center justify-between px-2">
-              <div><div className="muted text-[11px] font-medium uppercase tracking-wider">Workspace</div><div className="font-display text-lg font-semibold">{workspace.name}</div></div>
+              <div className="font-display text-lg font-semibold">Menu</div>
               <button onClick={() => setSheet(false)} className="icon-btn" aria-label="Close menu"><X size={18} /></button>
             </div>
             <div className="grid grid-cols-2 gap-2">
@@ -203,7 +183,6 @@ export function Shell({ user, workspace, workspaces, counts, demo, banners, chil
               ))}
             </div>
             <Link href="/account" className="nav-link mt-2" data-active={section?.key === "settings"}><Settings size={18} /> Settings</Link>
-            {workspaces.filter((w) => w.id !== workspace.id).map((w) => <button key={w.id} onClick={() => start(() => switchWorkspace(w.id))} className="nav-link w-full">Switch to {w.name}</button>)}
             <form action={logout}><button className="nav-link w-full text-red-600 dark:text-red-400"><LogOut size={18} /> Sign out</button></form>
           </div>
         </div>
