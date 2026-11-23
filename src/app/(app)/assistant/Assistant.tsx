@@ -92,7 +92,7 @@ export function Assistant({ brands, platforms }: { brands: { id: string; name: s
       </div>
       <Card title="Brand voice">
         <select className="input" value={brandId} onChange={(e) => setBrandId(e.target.value)}><option value="">Default brand</option>{brands.map((b) => <option key={b.id} value={b.id}>{b.name}</option>)}</select>
-        <p className="muted mt-2 text-xs">Each brand keeps its own tone, audience, products and examples. Edit them in <Link href="/settings#brands" className="text-brand-500">Settings → Brands</Link>.</p>
+        <p className="muted mt-2 text-xs">Each brand keeps its own tone, audience, products and examples. Edit them in <Link href="/settings/brand" className="text-brand-500">Settings → Brand</Link>.</p>
       </Card>
     </div>
   );

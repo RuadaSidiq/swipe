@@ -51,14 +51,14 @@ export async function saveBrand(input: unknown) {
     const { id, ...data } = d;
     if (id) { await db.brand.findFirstOrThrow({ where: { id, workspaceId: ctx.workspace.id } }); await db.brand.update({ where: { id }, data }); }
     else await db.brand.create({ data: { ...data, workspaceId: ctx.workspace.id } });
-    revalidatePath("/settings"); return true;
+    revalidatePath("/", "layout"); return true;
   });
 }
 export async function deleteBrand(id: string) {
   return safe(async () => {
     const ctx = await requireCtx(); ctx.assert("workspace.settings");
     if ((await db.brand.count({ where: { workspaceId: ctx.workspace.id } })) <= 1) throw new Error("A workspace needs at least one brand.");
-    await db.brand.deleteMany({ where: { id, workspaceId: ctx.workspace.id } }); revalidatePath("/settings"); return true;
+    await db.brand.deleteMany({ where: { id, workspaceId: ctx.workspace.id } }); revalidatePath("/", "layout"); return true;
   });
 }
 export async function saveSlots(slots: { weekday: number; minuteOfDay: number; platform: string | null }[]) {
@@ -66,7 +66,7 @@ export async function saveSlots(slots: { weekday: number; minuteOfDay: number; p
     const ctx = await requireCtx(); ctx.assert("workspace.settings");
     const d = z.array(z.object({ weekday: z.number().int().min(0).max(6), minuteOfDay: z.number().int().min(0).max(1439), platform: z.string().nullable() })).max(100).parse(slots);
     await db.$transaction([db.postingSlot.deleteMany({ where: { workspaceId: ctx.workspace.id } }), db.postingSlot.createMany({ data: d.map((s) => ({ ...s, workspaceId: ctx.workspace.id })) })]);
-    revalidatePath("/settings"); return true;
+    revalidatePath("/", "layout"); return true;
   });
 }
 export async function saveNotificationPrefs(prefs: { type: string; inApp: boolean; email: boolean }[]) {
@@ -150,7 +150,7 @@ export async function confirmTwoFactor(code: string) {
     const codes = newRecoveryCodes();
     await db.user.update({ where: { id: u.id }, data: { totpEnabledAt: new Date(), totpLastStep: step, recoveryCodes: codes.map((c) => sha256(c)) } });
     await audit(ctx, "user.2fa_enabled");
-    revalidatePath("/settings");
+    revalidatePath("/", "layout");
     return codes;
   });
 }
@@ -161,7 +161,7 @@ export async function disableTwoFactor(password: string) {
     if (!(await verifyPassword(password, u.passwordHash))) throw new Error("Password is incorrect.");
     await db.user.update({ where: { id: u.id }, data: { totpEnabledAt: null, totpSecretEnc: null, totpLastStep: null, recoveryCodes: [] } });
     await audit(ctx, "user.2fa_disabled");
-    revalidatePath("/settings");
+    revalidatePath("/", "layout");
     return true;
   });
 }

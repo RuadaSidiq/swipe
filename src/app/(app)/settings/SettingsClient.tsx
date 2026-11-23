@@ -8,7 +8,9 @@ const TZS = ["UTC", ...(typeof Intl !== "undefined" && "supportedValuesOf" in In
 const DAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 type R = { ok: boolean; error?: string };
 
-export function SettingsClient({ user, workspace, brands, slots, prefs, canWorkspace, isOwner, canCreateWs, features }: any) {
+export type SettingsSection = "profile" | "alerts" | "newws" | "delete" | "general" | "brand" | "privacy";
+export function SettingsClient({ section, user, workspace, brands, slots, prefs, canWorkspace, isOwner, canCreateWs, features }: any) {
+  const show = (x: SettingsSection) => section === x;
   const router = useRouter(); const [pending, start] = useTransition();
   const [msg, setMsg] = useState<Record<string, { ok: boolean; text: string }>>({});
   const run = (key: string, fn: () => Promise<R>, ok = "Saved") => start(async () => { const r = await fn(); setMsg((m) => ({ ...m, [key]: { ok: r.ok, text: r.ok ? ok : r.error! } })); if (r.ok) router.refresh(); });
@@ -17,8 +19,8 @@ export function SettingsClient({ user, workspace, brands, slots, prefs, canWorks
   const [sl, setSl] = useState<{ weekday: number; minuteOfDay: number; platform: string | null }[]>(slots);
 
   return (
-    <div className="grid gap-4 xl:grid-cols-2">
-      <Card title="Your profile">
+    <div className={section === "general" || section === "brand" || section === "privacy" ? "stagger grid grid-cols-[minmax(0,1fr)] gap-5 xl:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]" : "contents"}>
+      {show("profile") && <Card title="Profile">
         <form className="space-y-3" onSubmit={(e) => { e.preventDefault(); const f = new FormData(e.currentTarget); run("profile", () => updateProfile({ name: f.get("name"), timezone: f.get("tz") })); }}>
           <Field label="Name"><input name="name" className="input" defaultValue={user.name} /></Field>
           <Field label="Your timezone" hint="Calendar and schedule times are shown in this timezone."><select name="tz" className="input" defaultValue={user.timezone}>{TZS.map((t) => <option key={t}>{t}</option>)}</select></Field>
@@ -30,9 +32,9 @@ export function SettingsClient({ user, workspace, brands, slots, prefs, canWorks
           <input name="n" type="password" className="input" placeholder="New password (10+ chars)" autoComplete="new-password" required />
           <button className="btn-secondary" disabled={pending}>Change password</button><M k="pw" />
         </form>
-      </Card>
+      </Card>}
 
-      {canWorkspace && <Card title="Workspace">
+      {show("general") && canWorkspace && <Card title="Workspace">
         <form className="space-y-3" onSubmit={(e) => { e.preventDefault(); const f = new FormData(e.currentTarget); run("ws", () => updateWorkspace({ name: f.get("name"), timezone: f.get("tz"), requireApproval: f.get("approval") === "on" })); }}>
           <Field label="Workspace name"><input name="name" className="input" defaultValue={workspace.name} /></Field>
           <Field label="Default publishing timezone"><select name="tz" className="input" defaultValue={workspace.timezone}>{TZS.map((t) => <option key={t}>{t}</option>)}</select></Field>
@@ -41,7 +43,7 @@ export function SettingsClient({ user, workspace, brands, slots, prefs, canWorks
         </form>
       </Card>}
 
-      {canWorkspace && <Card title="Brands & AI voice" className="xl:col-span-2" actions={<button className="btn-secondary py-1.5" onClick={() => setBrandEdit({ name: "", description: "", audience: "", tone: "", products: "", guidelines: "", bannedWords: "", examples: "", defaultHashtags: "", isDefault: false })}>+ Add brand</button>}>
+      {show("brand") && canWorkspace && <Card title="Brands & AI voice" className="xl:col-span-2" actions={<button className="btn-secondary py-1.5" onClick={() => setBrandEdit({ name: "", description: "", audience: "", tone: "", products: "", guidelines: "", bannedWords: "", examples: "", defaultHashtags: "", isDefault: false })}>+ Add brand</button>}>
         <div id="brands" className="grid gap-3 md:grid-cols-3">{brands.map((b: any) => <button key={b.id} onClick={() => setBrandEdit(b)} className="line rounded-lg border p-3 text-left hover:bg-[var(--soft)]"><div className="font-medium">{b.name} {b.isDefault && <span className="chip bg-brand-500/15 text-brand-500">default</span>}</div><div className="muted mt-1 line-clamp-2 text-xs">{b.tone || b.description || "No voice defined yet — click to set one up."}</div></button>)}</div>
         {!features.multiBrand && <p className="muted mt-2 text-xs">Multiple brands are available on Professional and Agency.</p>}
         {brandEdit && (
@@ -55,7 +57,7 @@ export function SettingsClient({ user, workspace, brands, slots, prefs, canWorks
         <M k="brand" />
       </Card>}
 
-      {canWorkspace && <Card title="Preferred posting times">
+      {show("general") && canWorkspace && <Card title="Preferred posting times">
         <p className="muted mb-3 text-sm">Shown as highlighted slots in the calendar&apos;s week view (in the workspace timezone).</p>
         <ul className="space-y-2">{sl.map((s, i) => <li key={i} className="flex gap-2">
           <select className="input w-24" value={s.weekday} onChange={(e) => setSl(sl.map((x, k) => (k === i ? { ...x, weekday: Number(e.target.value) } : x)))}>{DAYS.map((d, k) => <option key={d} value={k}>{d}</option>)}</select>
@@ -64,39 +66,45 @@ export function SettingsClient({ user, workspace, brands, slots, prefs, canWorks
         <div className="mt-3 flex gap-2"><button className="btn-secondary" onClick={() => setSl([...sl, { weekday: 2, minuteOfDay: 600, platform: null }])}>+ Add time</button><button className="btn-primary" disabled={pending} onClick={() => run("slots", () => saveSlots(sl))}>Save times</button></div><M k="slots" />
       </Card>}
 
-      <Card title="Notification preferences">
+      {show("alerts") && <Card title="Alerts" className="xl:col-span-2">
         <form id="notifications" onSubmit={(e) => { e.preventDefault(); const f = new FormData(e.currentTarget); run("prefs", () => saveNotificationPrefs(prefs.map((p: any) => ({ type: p.type, inApp: f.get(`${p.type}-app`) === "on", email: f.get(`${p.type}-email`) === "on" })))); }}>
           <table className="table w-full"><thead><tr><th>Event</th><th className="text-center">In-app</th><th className="text-center">Email</th></tr></thead><tbody>
             {prefs.map((p: any) => <tr key={p.type}><td>{p.label}</td><td className="text-center"><input type="checkbox" name={`${p.type}-app`} defaultChecked={p.inApp} /></td><td className="text-center"><input type="checkbox" name={`${p.type}-email`} defaultChecked={p.email} /></td></tr>)}</tbody></table>
           <p className="muted mt-2 text-xs">Email needs RESEND_API_KEY on the server.</p>
           <button className="btn-primary mt-2" disabled={pending}>Save preferences</button><M k="prefs" />
         </form>
-      </Card>
+      </Card>}
 
-      <Card title="Workspaces">
+      {show("newws") && <Card title="New workspace">
         <div id="workspaces" />
         {canCreateWs ? <form className="flex gap-2" onSubmit={(e) => { e.preventDefault(); const f = new FormData(e.currentTarget); run("nws", () => createWorkspace(String(f.get("name")))); }}><input name="name" className="input" placeholder="Client or brand name" required /><button className="btn-primary" disabled={pending}>Create workspace</button></form>
           : <p className="muted text-sm">Ask an owner or admin to create workspaces.</p>}
         <p className="muted mt-2 text-xs">Each workspace keeps its own accounts, content and team.</p><M k="nws" />
-      </Card>
+      </Card>}
 
-      <Card title="Contact support">
+      {show("privacy") && <Card title="Contact support">
         <form className="space-y-2" onSubmit={(e) => { e.preventDefault(); const f = new FormData(e.currentTarget); const form = e.currentTarget; run("support", async () => { const r = await submitSupport({ subject: String(f.get("s")), body: String(f.get("b")) }); if (r.ok) form.reset(); return r; }, "Thanks — our team will get back to you by email."); }}>
           <input name="s" className="input" placeholder="Subject" required />
           <textarea name="b" className="input" rows={3} placeholder="Describe the problem (which account, what you tried, any error message)" required />
           <button className="btn-secondary" disabled={pending}>Send to support</button><M k="support" />
         </form>
-      </Card>
+      </Card>}
 
-      <Card title="Data & privacy">
+      {show("privacy") && <Card title="Data & privacy">
         <div className="flex flex-wrap gap-2">
           {(isOwner || canWorkspace) && <a href="/api/export" className="btn-secondary">Export workspace data (JSON)</a>}
           {isOwner && <button className="btn-secondary text-red-600 dark:text-red-400" onClick={() => { const n = prompt(`Type "${workspace.name}" to permanently delete this workspace, its posts, media, conversations and connected accounts.`); if (n) run("delws", () => deleteWorkspace(n)); }}>Delete workspace</button>}
-          <button className="btn-ghost text-red-600 dark:text-red-400" onClick={() => { const p = prompt("Enter your password to permanently delete your Swipe account."); if (p) run("delme", () => deleteMyAccount(p)); }}>Delete my account</button>
         </div>
         <p className="muted mt-2 text-xs">Exports never include access tokens. Published posts stay on the networks.</p>
-        <M k="delws" /><M k="delme" />
-      </Card>
+        <M k="delws" />
+      </Card>}
+      {show("delete") && <Card title="Delete account">
+        <p className="muted mb-3 text-sm">Permanently delete your Swipe login. Workspaces you own must be handed over or deleted first.</p>
+        <button className="btn-ghost text-red-600 dark:text-red-400" onClick={() => { const p = prompt("Enter your password to permanently delete your Swipe account."); if (p) run("delme", () => deleteMyAccount(p)); }}>Delete my account</button>
+        <M k="delme" />
+      </Card>}
+      {show("brand") && !canWorkspace && <Card title="Brand"><p className="muted text-sm">Only owners and admins can change the brand voice.</p></Card>}
+      {show("general") && !canWorkspace && <Card title="General"><p className="muted text-sm">Only owners and admins can change workspace settings.</p></Card>}
     </div>
   );
 }

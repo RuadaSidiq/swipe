@@ -3,14 +3,14 @@ import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import {
-  LayoutGrid, Inbox, PenSquare, CalendarDays, Users, BarChart3, Sparkles, Workflow, Settings, Bell, Search, Plus,
+  LayoutGrid, User, Inbox, PenSquare, CalendarDays, Users, BarChart3, Sparkles, Workflow, Settings, Bell, Search, Plus,
   LogOut, X, Menu, PanelLeftClose, PanelLeftOpen,
 } from "lucide-react";
 import { cx, SwipeLogo } from "./ui";
 import { logout } from "@/app/(auth)/actions";
 
 type Icon = React.ComponentType<{ size?: number; strokeWidth?: number; className?: string }>;
-interface Tab { href: string; label: string; match?: string[]; query?: [string, string] }
+interface Tab { href: string; label: string; exact?: boolean; query?: [string, string] }
 interface Section { key: string; label: string; href: string; icon: Icon; match: string[]; tabs?: Tab[]; hint: string }
 
 /**
@@ -29,11 +29,16 @@ export const SECTIONS: Section[] = [
   { key: "ai", label: "Swipe AI", href: "/assistant", icon: Sparkles, match: ["/assistant"], hint: "Your AI social media manager" },
   { key: "automations", label: "Automations", href: "/automations", icon: Workflow, match: ["/automations"], hint: "Repeatable workflows" },
 ];
-export const SETTINGS: Section = { key: "settings", label: "Settings", href: "/account", icon: Settings, hint: "Account, workspace and team",
-  match: ["/account", "/accounts", "/team", "/settings", "/billing", "/notifications", "/admin", "/search"],
-  tabs: [{ href: "/account", label: "Personal" }, { href: "/settings", label: "Workspace" }, { href: "/accounts", label: "Social accounts" },
-    { href: "/team", label: "Team & permissions" }, { href: "/billing", label: "Billing" }, { href: "/notifications", label: "Notifications" }] };
-const ALL = [...SECTIONS, SETTINGS];
+/** Settings: the business/workspace. Changes affect everyone in it. */
+export const SETTINGS: Section = { key: "settings", label: "Settings", href: "/settings", icon: Settings, hint: "Workspace, brand, accounts and team",
+  match: ["/settings", "/accounts", "/team", "/billing"],
+  tabs: [{ href: "/settings", label: "General", exact: true }, { href: "/settings/brand", label: "Brand" }, { href: "/accounts", label: "Social accounts" },
+    { href: "/team", label: "Team & permissions" }, { href: "/billing", label: "Billing" }, { href: "/settings/integrations", label: "Integrations" }, { href: "/settings/privacy", label: "Data & privacy" }] };
+/** My account: the signed-in person. Opened from their name; follows them into every workspace. */
+const ACCOUNT: Section = { key: "account", label: "My account", href: "/account", icon: User, hint: "Profile, security and alerts", match: ["/account", "/admin"] };
+const NOTIFICATIONS: Section = { key: "notifications", label: "Notifications", href: "/notifications", icon: Bell, hint: "Your alerts", match: ["/notifications"] };
+const SEARCH: Section = { key: "search", label: "Search", href: "/search", icon: Search, hint: "", match: ["/search"] };
+const ALL = [...SECTIONS, SETTINGS, ACCOUNT, NOTIFICATIONS, SEARCH];
 const hit = (m: string, path: string) => path === m || path.startsWith(m + "/");
 const inSection = (s: Section, path: string) => s.match.some((m) => hit(m, path));
 
@@ -58,7 +63,7 @@ export function Shell({ user, counts, banners, children }: Props) {
   const [q, setQ] = useState("");
   const searchRef = useRef<HTMLInputElement>(null);
   const section = ALL.find((s) => inSection(s, path));
-  const tabs = section?.tabs ? [...section.tabs, ...(section.key === "settings" && user.isPlatformAdmin ? [{ href: "/admin", label: "Admin" }] : [])] : null;
+  const tabs = section?.tabs ?? null;
 
   useEffect(() => { try { setCollapsed(localStorage.getItem(COLLAPSE_KEY) === "1"); } catch { /* storage unavailable */ } }, []);
   const toggle = () => setCollapsed((c) => { try { localStorage.setItem(COLLAPSE_KEY, c ? "0" : "1"); } catch { /* ignore */ } return !c; });
@@ -111,12 +116,12 @@ export function Shell({ user, counts, banners, children }: Props) {
           </nav>
 
           <div className="mt-2 flex flex-col gap-1 border-t pt-3" style={{ borderColor: "var(--line)" }}>
-            <Link href="/account" data-active={section?.key === "settings"} className={cx("nav-link", collapsed && "justify-center px-0")} title={collapsed ? "Settings" : undefined}>
+            <Link href="/settings" data-active={section?.key === "settings"} className={cx("nav-link", collapsed && "justify-center px-0")} title={collapsed ? "Settings" : undefined}>
               <Settings size={19} strokeWidth={1.8} />{!collapsed && <span className="flex-1">Settings</span>}
               {!collapsed && counts.accounts > 0 && <span className="nav-count" style={{ background: "#E5484D" }} title="Social accounts need attention">{counts.accounts}</span>}
             </Link>
             <div className={cx("flex items-center gap-1", collapsed && "flex-col")}>
-              <Link href="/account" className={cx("flex min-w-0 flex-1 items-center gap-2.5 rounded-[12px] p-1.5 transition hover:bg-[var(--soft)]", collapsed && "justify-center")} title={collapsed ? user.name : undefined} aria-label="Your profile">
+              <Link href="/account" aria-current={section?.key === "account" ? "page" : undefined} className={cx("flex min-w-0 flex-1 items-center gap-2.5 rounded-[12px] p-1.5 transition hover:bg-[var(--soft)]", section?.key === "account" && "bg-[var(--accent-soft)]", collapsed && "justify-center")} title={collapsed ? user.name : undefined} aria-label="Your profile">
                 <span className="grid h-9 w-9 shrink-0 place-items-center rounded-full text-xs font-semibold text-white" style={{ background: "linear-gradient(145deg,#1E2836,#0F1724)" }}>{initials}</span>
                 {!collapsed && <span className="min-w-0 flex-1"><span className="block truncate text-[13px] font-semibold">{user.name}</span><span className="muted block truncate text-[11.5px]">{user.email}</span></span>}
               </Link>
@@ -146,7 +151,7 @@ export function Shell({ user, counts, banners, children }: Props) {
           </div>
           {tabs && (
             <nav className="no-print -mx-1 flex gap-1 overflow-x-auto px-1 pb-2 pt-1" aria-label={`${section!.label} sections`}>
-              {tabs.map((t) => { const a = hit(t.href, path) && (!t.query || params.get(t.query[0]) === t.query[1]); return <Link key={t.href} href={t.href} className="seg" data-active={a} aria-current={a ? "page" : undefined}>{t.label}</Link>; })}
+              {tabs.map((t) => { const a = (t.exact ? path === t.href : hit(t.href, path)) && (!t.query || params.get(t.query[0]) === t.query[1]); return <Link key={t.href} href={t.href} className="seg" data-active={a} aria-current={a ? "page" : undefined}>{t.label}</Link>; })}
             </nav>
           )}
         </header>
@@ -182,7 +187,8 @@ export function Shell({ user, counts, banners, children }: Props) {
                 </Link>
               ))}
             </div>
-            <Link href="/account" className="nav-link mt-2" data-active={section?.key === "settings"}><Settings size={18} /> Settings</Link>
+            <Link href="/settings" className="nav-link mt-2" data-active={section?.key === "settings"}><Settings size={18} /> Settings</Link>
+            <Link href="/account" className="nav-link" data-active={section?.key === "account"}><User size={18} /> My account</Link>
             <form action={logout}><button className="nav-link w-full text-red-600 dark:text-red-400"><LogOut size={18} /> Sign out</button></form>
           </div>
         </div>

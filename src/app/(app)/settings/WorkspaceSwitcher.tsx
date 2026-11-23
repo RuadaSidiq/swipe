@@ -4,12 +4,11 @@ import { Check } from "lucide-react";
 import { switchWorkspace } from "@/app/(app)/_actions/common";
 
 /** Lists the user's workspaces; switching keeps each workspace's data separate. */
-export function WorkspaceSwitcher({ workspaces, currentId }: { workspaces: { id: string; name: string }[]; currentId: string }) {
+export function WorkspaceSwitcher({ workspaces, currentId, bare }: { workspaces: { id: string; name: string }[]; currentId: string; bare?: boolean }) {
   const [pending, start] = useTransition();
   return (
-    <section className="panel mb-4 p-6">
-      <h2 className="section-title">Your workspaces</h2>
-      <p className="muted mt-0.5 text-sm">Switch between brands and clients. Each one keeps its own accounts, content and team.</p>
+    <section className={bare ? "" : "panel p-6"}>
+      <p className="muted text-sm">Switch between brands and clients. Each one keeps its own accounts, content and team.</p>
       <ul className="mt-4 flex flex-col gap-2">
         {workspaces.map((w) => {
           const current = w.id === currentId;
