@@ -48,5 +48,7 @@
   },
   "prisma": {
     "seed": "tsx prisma/seed.ts"
-  }
+  },
+  "author": "Deladem",
+  "description": "Swipe: AI-powered social media management platform. Designed by Deladem."
 }
