@@ -1,20 +1,21 @@
 import Link from "next/link";
 import { addDays, startOfWeek, subDays, subWeeks } from "date-fns";
-import { Users, Heart, Send, CalendarClock, MessageCircle, Plus, AlertCircle, ChevronRight } from "lucide-react";
+import { Users, Heart, Send, CalendarClock, MessageCircle, Plus, AlertCircle, ChevronRight, Sparkles } from "lucide-react";
 import { requireCtx } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { getAnalytics } from "@/lib/analytics";
 import { compact, fmtDate } from "@/lib/format";
-import { Avatar, Card, Empty, PlatformBadge, Stat, StatusBadge } from "@/components/ui";
+import { Avatar, Card, Empty, PlatformBadge, StatusBadge } from "@/components/ui";
 import { BarChart } from "@/components/charts";
 
-export const metadata = { title: "Home" };
+export const metadata = { title: "Overview" };
 
 export default async function Home() {
   const ctx = await requireCtx();
   const ws = ctx.workspace.id; const tz = ctx.user.timezone;
   const now = new Date();
-  const [accounts, upcoming, unread, unreadCount, activity, failed, approvals, current, previous] = await Promise.all([
+  const wk = startOfWeek(now, { weekStartsOn: 1 });
+  const [accounts, upcoming, unread, unreadCount, activity, failed, approvals, current, previous, weekPosts] = await Promise.all([
     db.socialAccount.findMany({ where: { workspaceId: ws, status: { not: "DISCONNECTED" } }, select: { id: true, platform: true, displayName: true, avatarUrl: true, status: true }, orderBy: { platform: "asc" } }),
     db.post.findMany({ where: { workspaceId: ws, status: { in: ["SCHEDULED", "PENDING_APPROVAL"] }, scheduledAt: { gte: now } }, orderBy: { scheduledAt: "asc" }, take: 5, include: { targets: { select: { account: { select: { platform: true } } } } } }),
     db.conversation.findMany({ where: { workspaceId: ws, unread: true, status: { in: ["OPEN", "PENDING"] } }, orderBy: { lastMessageAt: "desc" }, take: 4, include: { contact: { select: { displayName: true, avatarUrl: true } }, account: { select: { platform: true } } } }),
@@ -24,6 +25,7 @@ export default async function Home() {
     ctx.can("posts.approve") ? db.post.count({ where: { workspaceId: ws, status: "PENDING_APPROVAL" } }) : 0,
     ctx.can("analytics.view") ? getAnalytics(ws, { from: subDays(now, 30), to: now }) : null,
     ctx.can("analytics.view") ? getAnalytics(ws, { from: subDays(now, 60), to: subDays(now, 30) }) : null,
+    db.post.findMany({ where: { workspaceId: ws, status: { in: ["SCHEDULED", "PENDING_APPROVAL", "PUBLISHED"] }, scheduledAt: { gte: wk, lt: addDays(wk, 7) } }, select: { scheduledAt: true } }),
   ]);
 
   const followers = current?.series.reduce((n, s) => n + (s.latest ?? 0), 0) ?? 0;
@@ -51,47 +53,131 @@ export default async function Home() {
   const ACTION: Record<string, string> = { "post.schedule": "scheduled a post", "post.publish_now": "published a post", "post.approve": "approved a post", "account.connect": "connected an account", "inbox.reply": "replied to a message", "campaign.create": "created a campaign" };
   const hour = Number(fmtDate(now, tz, "H"));
 
+  const first = ctx.user.name.split(" ")[0];
+  const greet = hour < 12 ? "morning" : hour < 18 ? "afternoon" : "evening";
+  const followChange = pct(followers, prevFollowers);
+  const weekStart = startOfWeek(now, { weekStartsOn: 1 });
+  const days = Array.from({ length: 7 }, (_, i) => addDays(weekStart, i));
+  const dayKey = (d: Date) => fmtDate(d, tz, "yyyy-MM-dd");
+  const perWeekday = new Map<string, number>();
+  for (const p of weekPosts) perWeekday.set(dayKey(p.scheduledAt!), (perWeekday.get(dayKey(p.scheduledAt!)) ?? 0) + 1);
+  const todayKey = dayKey(now);
+  const thisWeek = weekPosts.length;
+  // Recommendations are derived only from real workspace data.
+  const tips = [
+    unreadCount > 0 && { text: `Reply to ${unreadCount} unread conversation${unreadCount > 1 ? "s" : ""}. Fast replies build trust.`, href: "/inbox?f=unread", cta: "Open inbox" },
+    thisWeek === 0 && { text: "Nothing is scheduled this week. Plan a few posts to stay visible.", href: "/calendar", cta: "Open planner" },
+    approvals > 0 && { text: `${approvals} post${approvals > 1 ? "s are" : " is"} waiting for your approval.`, href: "/posts?status=PENDING_APPROVAL", cta: "Review" },
+    current && current.published > 0 && { text: "See which posts performed best this month, and why.", href: "/assistant", cta: "Ask Swipe AI" },
+  ].filter(Boolean).slice(0, 3) as { text: string; href: string; cta: string }[];
+
   return (
-    <div className="flex flex-col gap-6">
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <h1 className="font-display text-[26px] font-semibold">Good {hour < 12 ? "morning" : hour < 18 ? "afternoon" : "evening"}, {ctx.user.name.split(" ")[0]}</h1>
+    <div className="flex flex-col gap-5">
+      <div className="flex flex-wrap items-end justify-between gap-3">
+        <div>
+          <h1 className="font-display text-[28px] font-semibold leading-tight">Good {greet}, {first}</h1>
+          <p className="muted mt-0.5 text-sm">Here&apos;s what&apos;s happening across your social accounts.</p>
+        </div>
+        <div className="flex gap-2">
+          <Link href="/inbox" className="btn-secondary"><MessageCircle size={16} /> Open inbox</Link>
+          <Link href="/publisher" className="btn-primary"><Plus size={16} /> Create post</Link>
+        </div>
       </div>
 
       {accounts.length === 0 && (
         <Card><Empty icon={<Users size={22} />} title="Connect your first account" body="Link Instagram, Facebook, TikTok and more to start posting." action={<Link href="/accounts" className="btn-primary">Connect an account</Link>} /></Card>
       )}
 
+      <div className="stagger grid grid-cols-[minmax(0,1fr)] gap-5 xl:grid-cols-[minmax(0,1.55fr)_minmax(0,1fr)]">
+        {/* Hero: performance summary */}
+        <section className="hero relative flex flex-col overflow-hidden p-5 sm:p-7">
+          <div className="pointer-events-none absolute -right-16 -top-20 h-64 w-64 rounded-full bg-white/10 blur-2xl" />
+          <div className="pointer-events-none absolute -bottom-24 right-24 h-56 w-56 rounded-full bg-black/10 blur-2xl" />
+          <div className="relative flex flex-wrap items-start justify-between gap-4">
+            <div>
+              <div className="text-[13px] font-medium text-white/80">Total followers · last 30 days</div>
+              <div className="mt-2 flex items-end gap-3">
+                <span className="num text-[48px] font-semibold leading-none sm:text-[56px]">{current && followers ? compact(followers) : "—"}</span>
+                {followChange != null && followChange !== 0 && <span className="mb-2 rounded-full bg-white/20 px-2.5 py-1 text-xs font-semibold backdrop-blur">{followChange > 0 ? "↑" : "↓"} {Math.abs(followChange).toFixed(1)}%</span>}
+              </div>
+            </div>
+            <div className="flex items-center gap-2 rounded-full bg-white/15 py-1 pl-1 pr-3 backdrop-blur">
+              <span className="flex -space-x-2">{accounts.slice(0, 4).map((a) => <span key={a.id} className="rounded-full ring-2 ring-[#00A06C]"><PlatformBadge id={a.platform} size={26} /></span>)}</span>
+              <span className="text-xs font-semibold">{accounts.length} connected</span>
+            </div>
+          </div>
+          <div className="relative mt-6 grid grid-cols-3 gap-3">
+            {[
+              { icon: <Heart size={15} />, label: "Engagement", value: current?.withMetrics ? compact(eng(current)) : "—", change: current ? pct(eng(current), eng(previous)) : null },
+              { icon: <Send size={15} />, label: "Published", value: current ? String(current.published) : "—", change: current ? pct(current.published, previous?.published ?? 0) : null },
+              { icon: <CalendarClock size={15} />, label: "Scheduled", value: String(thisWeek), change: null },
+            ].map((m) => (
+              <div key={m.label} className="rounded-2xl bg-white/15 p-3 backdrop-blur sm:p-4" style={{ boxShadow: "inset 0 1px 0 rgba(255,255,255,.25)" }}>
+                <div className="flex items-center gap-1.5 truncate whitespace-nowrap text-[11.5px] font-medium text-white/85 sm:text-[12px]">{m.icon}{m.label}</div>
+                <div className="num mt-1.5 text-[22px] font-semibold leading-none sm:text-[26px]">{m.value}</div>
+                {m.change != null && m.change !== 0 && <div className="mt-1 text-[11px] font-semibold text-white/80">{m.change > 0 ? "↑" : "↓"} {Math.abs(m.change).toFixed(1)}%</div>}
+              </div>
+            ))}
+          </div>
+          <div className="relative mt-auto flex flex-wrap items-center justify-between gap-3 pt-6">
+            <span className="text-[12.5px] text-white/80">Scheduled counts posts planned for this week.</span>
+            <Link href="/analytics" className="inline-flex items-center gap-1 rounded-full bg-white px-3.5 py-2 text-[13px] font-semibold text-[#00714B] transition hover:-translate-y-px" style={{ boxShadow: "0 8px 16px -8px rgba(0,0,0,.35), inset 0 -2px 4px rgba(0,0,0,.06)" }}>Full analytics <ChevronRight size={14} /></Link>
+          </div>
+        </section>
+
+        {/* Today: week strip + next scheduled */}
+        <section className="panel lift flex flex-col p-5">
+          <div className="flex items-center justify-between">
+            <div><h2 className="section-title">Today</h2><div className="muted text-xs">{fmtDate(now, tz, "EEEE, MMMM d")}</div></div>
+            <Link href="/publisher" className="icon-btn clay rounded-full" aria-label="Create post"><Plus size={16} /></Link>
+          </div>
+          <div className="mt-4 grid grid-cols-7 gap-1.5">
+            {days.map((d) => { const k = dayKey(d); const isToday = k === todayKey; const n = perWeekday.get(k) ?? 0; return (
+              <Link key={k} href="/calendar" className={isToday ? "flex flex-col items-center rounded-2xl py-2 text-white" : "clay-inset flex flex-col items-center rounded-2xl py-2 transition hover:bg-[var(--accent-soft)]"} style={isToday ? { background: "linear-gradient(160deg,#1E2836,#0F1724)", boxShadow: "0 10px 18px -8px rgba(15,23,36,.5)" } : undefined}>
+                <span className={isToday ? "text-[10.5px] text-white/70" : "muted text-[10.5px]"}>{fmtDate(d, tz, "EEE")}</span>
+                <span className="num text-[15px] font-semibold">{fmtDate(d, tz, "d")}</span>
+                <span className="mt-0.5 flex h-1.5 gap-0.5">{Array.from({ length: Math.min(n, 3) }, (_, i) => <span key={i} className="h-1.5 w-1.5 rounded-full" style={{ background: isToday ? "#3BD9A2" : "var(--accent-bright)" }} />)}</span>
+              </Link>); })}
+          </div>
+          <div className="mt-4 flex-1">
+            {upcoming.length === 0 ? <div className="muted grid h-full place-items-center py-6 text-sm">Nothing scheduled. <Link href="/publisher" className="font-medium text-[var(--accent)]">Plan a post</Link></div> : (
+              <ul className="flex flex-col gap-1">
+                {upcoming.slice(0, 3).map((p) => (
+                  <li key={p.id}><Link href={`/posts/${p.id}`} className="flex items-center gap-3 rounded-2xl px-2 py-2 transition hover:bg-[var(--soft)]">
+                    <span className="grid h-9 w-9 shrink-0 place-items-center rounded-xl" style={{ background: "var(--accent-soft)", color: "var(--accent)" }}><CalendarClock size={16} /></span>
+                    <span className="min-w-0 flex-1"><span className="block truncate text-[13px] font-medium">{p.title || p.body}</span><span className="muted flex items-center gap-1.5 text-[11.5px]">{fmtDate(p.scheduledAt, tz, "EEE d · HH:mm")}<span className="flex -space-x-1">{[...new Set(p.targets.map((t) => t.account.platform))].map((x) => <PlatformBadge key={x} id={x} size={14} className="ring-1 ring-[var(--panel)]" />)}</span></span></span>
+                    {p.status === "PENDING_APPROVAL" && <StatusBadge status={p.status} />}
+                  </Link></li>
+                ))}
+              </ul>
+            )}
+          </div>
+          <Link href="/calendar" className="mt-2 flex items-center justify-center gap-1 rounded-2xl py-2 text-[13px] font-medium text-[var(--accent)] transition hover:bg-[var(--accent-soft)]">Open planner <ChevronRight size={14} /></Link>
+        </section>
+      </div>
+
       {alerts.length > 0 && (
-        <div className="flex flex-col gap-2">
+        <div className="stagger flex flex-col gap-2">
           {alerts.map((a) => (
-            <Link key={a.text} href={a.href} className="flex items-center gap-3 rounded-xl bg-amber-50 px-4 py-3 text-sm font-medium text-amber-800 transition hover:bg-amber-100 dark:bg-amber-500/15 dark:text-amber-200">
-              <AlertCircle size={17} /><span className="flex-1">{a.text}</span><ChevronRight size={16} />
+            <Link key={a.text} href={a.href} className="lift flex items-center gap-3 rounded-2xl bg-amber-50 px-4 py-3 text-sm font-medium text-amber-800 dark:bg-amber-500/15 dark:text-amber-200" style={{ boxShadow: "inset 0 1px 0 rgba(255,255,255,.8), 0 8px 18px -12px rgba(180,120,0,.35)" }}>
+              <span className="grid h-8 w-8 place-items-center rounded-xl bg-amber-100 dark:bg-amber-500/20"><AlertCircle size={16} /></span><span className="flex-1">{a.text}</span><ChevronRight size={16} />
             </Link>
           ))}
         </div>
       )}
 
-      {current && (
-        <div className="grid grid-cols-3 gap-3 sm:gap-4">
-          <Stat icon={<Users size={17} />} label="Followers" value={followers ? compact(followers) : "—"} hint="Last 30 days" change={pct(followers, prevFollowers)} />
-          <Stat icon={<Heart size={17} />} label="Engagement" value={current.withMetrics ? compact(eng(current)) : "—"} hint="Last 30 days" change={pct(eng(current), eng(previous))} />
-          <Stat icon={<Send size={17} />} label="Posts published" value={current.published} hint="Last 30 days" change={pct(current.published, previous?.published ?? 0)} />
-        </div>
-      )}
-
-      <div className="grid gap-6 xl:grid-cols-[1.6fr_1fr]">
+      <div className="stagger grid grid-cols-[minmax(0,1fr)] gap-5 xl:grid-cols-[minmax(0,1.55fr)_minmax(0,1fr)]">
         {current && (
-          <Card title="New followers" actions={<Link href="/analytics" className="font-medium text-[var(--accent)]">View analytics</Link>}>
-            {hasBars ? <BarChart data={bars} format="compact" height={230} /> : <Empty title="No data yet" body="Follower counts appear once your accounts sync." />}
+          <Card className="lift" title="New followers" actions={<Link href="/analytics" className="font-medium text-[var(--accent)]">View analytics</Link>}>
+            {hasBars ? <BarChart data={bars} format="compact" height={220} /> : <Empty title="No data yet" body="Follower counts appear once your accounts sync." />}
           </Card>
         )}
-
-        <Card title="Inbox" actions={<Link href="/inbox" className="font-medium text-[var(--accent)]">{unreadCount > 0 ? `${unreadCount} unread` : "Open"}</Link>} pad={false}>
+        <Card className="lift" title="Inbox" actions={<Link href="/inbox" className="font-medium text-[var(--accent)]">{unreadCount > 0 ? `${unreadCount} unread` : "Open"}</Link>} pad={false}>
           {unread.length === 0 ? <Empty icon={<MessageCircle size={22} />} title="You're all caught up" /> : (
             <ul className="px-3 pb-2">
               {unread.map((c) => (
                 <li key={c.id}>
-                  <Link href={`/inbox?c=${c.id}`} className="flex items-center gap-3 rounded-xl px-3 py-2.5 transition hover:bg-[var(--soft)]">
+                  <Link href={`/inbox?c=${c.id}`} className="flex items-center gap-3 rounded-2xl px-3 py-2.5 transition hover:bg-[var(--soft)]">
                     <Avatar src={c.contact?.avatarUrl} name={c.contact?.displayName ?? "?"} size={38} platform={c.account.platform} />
                     <div className="min-w-0 flex-1"><div className="truncate text-sm font-semibold">{c.contact?.displayName ?? "Unknown"}</div><div className="muted truncate text-[13px]">{c.lastMessagePreview}</div></div>
                     <span className="h-2 w-2 shrink-0 rounded-full" style={{ background: "var(--accent-bright)" }} aria-label="Unread" />
@@ -103,49 +189,31 @@ export default async function Home() {
         </Card>
       </div>
 
-      <div className="grid gap-6 xl:grid-cols-[1.6fr_1fr]">
-        <Card title="Upcoming posts" actions={<Link href="/calendar" className="font-medium text-[var(--accent)]">Calendar</Link>} pad={false}>
-          {upcoming.length === 0 ? <Empty icon={<CalendarClock size={22} />} title="Nothing scheduled" action={<Link href="/publisher" className="btn-primary"><Plus size={16} /> Create post</Link>} /> : (
-            <ul className="px-3 pb-2">
-              {upcoming.map((p) => (
-                <li key={p.id}>
-                  <Link href={`/posts/${p.id}`} className="flex items-center gap-4 rounded-xl px-3 py-3 transition hover:bg-[var(--soft)]">
-                    <div className="w-14 shrink-0 text-center"><div className="muted text-[11px] font-medium uppercase">{fmtDate(p.scheduledAt, tz, "EEE")}</div><div className="num text-lg font-semibold leading-tight">{fmtDate(p.scheduledAt, tz, "d")}</div></div>
-                    <div className="min-w-0 flex-1">
-                      <div className="truncate text-sm font-medium">{p.title || p.body}</div>
-                      <div className="mt-1 flex items-center gap-2"><span className="muted text-xs">{fmtDate(p.scheduledAt, tz, "HH:mm")}</span>
-                        <span className="flex -space-x-1">{[...new Set(p.targets.map((t) => t.account.platform))].map((x) => <PlatformBadge key={x} id={x} size={18} className="ring-2 ring-[var(--panel)]" />)}</span>
-                        {p.status === "PENDING_APPROVAL" && <StatusBadge status={p.status} />}</div>
-                    </div>
-                  </Link>
+      <div className="stagger grid grid-cols-[minmax(0,1fr)] gap-5 xl:grid-cols-[minmax(0,1.55fr)_minmax(0,1fr)]">
+        <section className="panel lift relative overflow-hidden p-6">
+          <div className="pointer-events-none absolute -right-10 -top-10 h-40 w-40 rounded-full blur-2xl" style={{ background: "var(--accent-soft)" }} />
+          <div className="relative flex items-center gap-2.5">
+            <span className="grid h-9 w-9 place-items-center rounded-xl text-white" style={{ background: "linear-gradient(160deg,#1FC48D,#00875A)", boxShadow: "inset 0 1px 0 rgba(255,255,255,.35)" }}><Sparkles size={17} /></span>
+            <div><h2 className="section-title leading-tight">Swipe AI suggestions</h2><div className="muted text-xs">Based on your workspace right now</div></div>
+          </div>
+          {tips.length === 0 ? <p className="muted relative mt-4 text-sm">You&apos;re on top of everything. Nice work.</p> : (
+            <ul className="relative mt-4 flex flex-col gap-2">
+              {tips.map((t) => (
+                <li key={t.text} className="clay-inset flex flex-wrap items-center gap-3 rounded-2xl px-4 py-3">
+                  <span className="min-w-0 flex-1 text-[13.5px]">{t.text}</span>
+                  <Link href={t.href} className="inline-flex items-center gap-1 text-[13px] font-semibold text-[var(--accent)]">{t.cta} <ChevronRight size={14} /></Link>
                 </li>
               ))}
             </ul>
           )}
+        </section>
+        <Card className="lift" title="Recent activity">
+          {activity.length === 0 ? <span className="muted text-sm">No activity yet.</span> : (
+            <ul className="flex flex-col gap-3">
+              {activity.map((a) => <li key={a.id} className="flex items-center justify-between gap-3 text-sm"><span className="flex items-center gap-2.5"><span className="h-2 w-2 rounded-full" style={{ background: "var(--accent-bright)" }} /><span><span className="font-medium">{a.actorName?.split(" ")[0] ?? "Someone"}</span> {ACTION[a.action]}</span></span><span className="muted shrink-0 text-xs">{fmtDate(a.createdAt, tz, "MMM d")}</span></li>)}
+            </ul>
+          )}
         </Card>
-
-        <div className="flex flex-col gap-6">
-          <Card title="Accounts" actions={<Link href="/accounts" className="font-medium text-[var(--accent)]">Manage</Link>}>
-            {accounts.length === 0 ? <span className="muted text-sm">None connected yet.</span> : (
-              <div className="flex flex-wrap gap-2">
-                {accounts.map((a) => (
-                  <span key={a.id} className="relative" title={`${a.displayName}${a.status !== "CONNECTED" ? " (needs reconnecting)" : ""}`}>
-                    <PlatformBadge id={a.platform} size={38} />
-                    {a.status !== "CONNECTED" && <span className="absolute -right-0.5 -top-0.5 h-3 w-3 rounded-full ring-2 ring-[var(--panel)]" style={{ background: "#E5484D" }} />}
-                  </span>
-                ))}
-                <Link href="/accounts" className="grid h-[38px] w-[38px] place-items-center rounded-xl border border-dashed transition hover:bg-[var(--soft)]" style={{ borderColor: "var(--line-strong)" }} aria-label="Connect an account"><Plus size={16} className="muted" /></Link>
-              </div>
-            )}
-          </Card>
-          <Card title="Recent activity">
-            {activity.length === 0 ? <span className="muted text-sm">No activity yet.</span> : (
-              <ul className="flex flex-col gap-3">
-                {activity.map((a) => <li key={a.id} className="flex items-baseline justify-between gap-3 text-sm"><span><span className="font-medium">{a.actorName?.split(" ")[0] ?? "Someone"}</span> {ACTION[a.action]}</span><span className="muted shrink-0 text-xs">{fmtDate(a.createdAt, tz, "MMM d")}</span></li>)}
-              </ul>
-            )}
-          </Card>
-        </div>
       </div>
     </div>
   );
